@@ -1450,18 +1450,100 @@ export default function App() {
             onTriggerVoiceGuidance={() => triggerTutorGuidance()}
           />
 
-        </div>
+          {/* Active Song Lyrics (Legendas) below the Dialer Canvas */}
+          {isMusicMode && (() => {
+            const currentSong = musicSongs.find((s) => s.id === activeSongId) || musicSongs[0];
+            const sentences = currentSong?.sentences || [];
+            return (
+              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-4 shadow-lg space-y-3 w-full">
+                <div className="flex items-center justify-between border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">🎵</span>
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-xs font-black text-slate-850 dark:text-slate-100 uppercase tracking-tight">
+                          {currentSong.title}
+                        </h4>
+                        <span className="bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full border border-indigo-400/30">
+                          {currentSong.language}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium">
+                        {currentSong.artist} • {completedMusicSentenceIndices.length} de {sentences.length} concluídas
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                  {sentences.map((sentence, idx) => {
+                    const isActive = activeMusicSentenceIndex === idx;
+                    const isCompleted = completedMusicSentenceIndices.includes(idx);
 
-        {/* Right Side: Persistent Library Sidebar (Desktop) or Sliding Drawer (Mobile) / Ebook / Music Panel */}
-        {isMusicMode && !isMusicPlayerMinimized ? (
-          <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm lg:relative lg:inset-auto lg:z-0 lg:bg-transparent lg:backdrop-blur-none lg:p-0 lg:flex-shrink-0 animate-fade-in"
-            onClick={() => setIsMusicPlayerMinimized(true)}
-          >
-            <div 
-              className="w-full max-w-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
+                    return (
+                      <div
+                        key={sentence.id}
+                        onClick={() => {
+                          playTick();
+                          setActiveMusicSentenceIndex(idx);
+                          handleClearSequence();
+                        }}
+                        className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                          isActive
+                            ? "bg-amber-500/10 border-amber-400 shadow-md ring-2 ring-amber-400/20"
+                            : isCompleted
+                            ? "bg-emerald-500/5 border-emerald-400/40"
+                            : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:bg-slate-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center text-xs font-mono font-black ${
+                              isActive
+                                ? "bg-amber-500 text-slate-950"
+                                : isCompleted
+                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                            }`}
+                          >
+                            {isCompleted ? "✓" : idx + 1}
+                          </span>
+
+                          <div className="text-left">
+                            <div className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-wide">
+                              {joinSentence(sentence.characters)}
+                            </div>
+                            <div className="text-[10px] text-indigo-650 dark:text-indigo-400 font-semibold">
+                              {sentence.pinyin}
+                            </div>
+                            <div className="text-[9px] text-slate-500 dark:text-slate-450 italic">
+                              "{sentence.translation}"
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            playTick();
+                            handleSpeakText(joinSentence(sentence.characters));
+                          }}
+                          className="p-1.5 rounded-lg bg-white dark:bg-slate-900 text-slate-655 dark:text-slate-350 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 active:scale-90 transition-all shrink-0"
+                          title="Ouvir pronúncia da linha"
+                        >
+                          <Volume2 size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* MusicPlayerPanel for Mobile/Tablet Inline view (No backdrop cover overlay) */}
+          {isMusicMode && !isMusicPlayerMinimized && (
+            <div className="lg:hidden w-full max-w-xl mx-auto animate-slide-up">
               <MusicPlayerPanel
                 songs={musicSongs}
                 activeSongId={activeSongId}
@@ -1502,6 +1584,52 @@ export default function App() {
                 }}
               />
             </div>
+          )}
+
+        </div>
+
+        {/* Right Side: Persistent Library Sidebar (Desktop) or Sliding Drawer (Mobile) / Ebook / Music Panel */}
+        {isMusicMode && !isMusicPlayerMinimized ? (
+          <div className="hidden lg:block w-[400px] flex-shrink-0 z-30">
+            <MusicPlayerPanel
+              songs={musicSongs}
+              activeSongId={activeSongId}
+              activeSentenceIndex={activeMusicSentenceIndex}
+              completedSentenceIndices={completedMusicSentenceIndices}
+              onSelectSong={(songId) => {
+                playTick();
+                setActiveSongId(songId);
+                setActiveMusicSentenceIndex(0);
+                handleClearSequence();
+              }}
+              onSelectSentence={(idx) => {
+                playTick();
+                setActiveMusicSentenceIndex(idx);
+                handleClearSequence();
+              }}
+              onAddCustomSong={(newSong) => {
+                playTick();
+                const updated = [...musicSongs, newSong];
+                setMusicSongs(updated);
+                const customOnly = updated.filter(s => s.id.startsWith('song-custom-'));
+                localStorage.setItem('hanzi_dial_custom_songs', JSON.stringify(customOnly));
+                setActiveSongId(newSong.id);
+                setActiveMusicSentenceIndex(0);
+                handleClearSequence();
+              }}
+              onExitMusic={() => {
+                playTick();
+                setIsMusicMode(false);
+                handleClearSequence();
+              }}
+              onMinimizeMusic={() => {
+                playTick();
+                setIsMusicPlayerMinimized(true);
+              }}
+              onSpeakSentence={(text) => {
+                handleSpeakText(text);
+              }}
+            />
           </div>
         ) : isEbookMode ? (
           <EbookReaderPanel
