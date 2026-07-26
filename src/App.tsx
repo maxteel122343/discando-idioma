@@ -1349,7 +1349,7 @@ export default function App() {
       </nav>
 
       {/* Main Content Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 pb-20 lg:pb-6 flex flex-col lg:flex-row gap-6 items-stretch overflow-hidden">
+      <main className="flex-1 w-full mx-auto p-2 sm:p-4 pb-20 lg:pb-6 flex flex-col lg:flex-row gap-4 items-stretch overflow-hidden">
         
         {/* Left Side: Game Canvas & Quick Level selector */}
         <div className="flex-1 flex flex-col gap-4">
@@ -1387,7 +1387,8 @@ export default function App() {
 
           {/* AI Voice Assistant Guidance Bar (Home/Review) vs Level Badge (Music Mode) & Minimized Playlist Button */}
           <div className="flex items-center justify-between gap-3 w-full">
-            {!isMusicMode ? (
+            {/* AI Voice Assistant - Hidden, kept for logic only */}
+            {false && (
               <AIVoiceAssistantCard
                 isEnabled={isVoiceAssistantEnabled}
                 onToggleEnabled={() => {
@@ -1408,36 +1409,20 @@ export default function App() {
                 targetPhonetic={activeTargetDetails.pinyin}
                 targetLanguageName={currentLanguage.name}
               />
-            ) : (
-              /* Level Badge rendered under logo in place of the assistant robot button in Music Mode */
-              <div className="flex items-center gap-2 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1.5 rounded-full text-[11px] font-bold text-indigo-650 dark:text-indigo-450 shadow-sm z-20">
-                <Trophy size={13} className="text-amber-500 shrink-0 animate-bounce" />
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                  <span className="whitespace-nowrap">Level <strong className="font-extrabold text-slate-850 dark:text-slate-200">{Math.floor(totalXp / 100) + 1}</strong></span>
-                  <span className="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">{totalXp % 100}/100 XP</span>
-                    <div className="w-12 sm:w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                      <div 
-                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                        style={{ width: `${totalXp % 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
             )}
-            {isMusicMode && isMusicPlayerMinimized && (
-              <button
-                onClick={() => {
-                  playTick();
-                  setIsMusicPlayerMinimized(false);
-                }}
-                className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 via-pink-600 to-indigo-600 text-white shadow-xl border border-pink-400/40 hover:brightness-110 active:scale-95 transition-all cursor-pointer shrink-0 z-20"
-                title="Expandir Playlist de Música"
-              >
-                <Music size={20} className="text-white animate-pulse" />
-              </button>
+            {isMusicMode && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    playTick();
+                    setIsMusicPlayerMinimized(!isMusicPlayerMinimized);
+                  }}
+                  className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 via-pink-600 to-indigo-600 text-white shadow-xl border border-pink-400/40 hover:brightness-110 active:scale-95 transition-all cursor-pointer shrink-0 z-20"
+                  title={isMusicPlayerMinimized ? 'Expandir Playlist' : 'Minimizar Playlist'}
+                >
+                  <Music size={20} className="text-white" />
+                </button>
+              </div>
             )}
           </div>
 
