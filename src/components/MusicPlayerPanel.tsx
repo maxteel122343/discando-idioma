@@ -81,6 +81,11 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
       audio.volume = isMuted ? 0 : volume;
       audio.loop = !isLoopSentenceMode;
       audioRef.current = audio;
+      
+      // If we are already in playing state, trigger play instantly on new Audio instantiation
+      if (isPlaying && !isLoopSentenceMode) {
+        audio.play().catch((e) => console.log('Audio autoplay on load prevented', e));
+      }
     } else {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -96,7 +101,7 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
         clearInterval(synthLoopTimerRef.current);
       }
     };
-  }, [currentSong?.id, currentSong?.audioUrl]);
+  }, [currentSong?.id, currentSong?.audioUrl, isPlaying]);
 
   // Volume / Mute listener
   useEffect(() => {
