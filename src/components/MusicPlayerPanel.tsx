@@ -199,6 +199,35 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
   const totalSentences = sentences.length;
   const isSongCompleted = totalSentences > 0 && completedCount === totalSentences;
 
+  // Drag to scroll logic for playlist container
+  const playlistRef = useRef<HTMLDivElement | null>(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftState, setScrollLeftState] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!playlistRef.current) return;
+    setIsMouseDown(true);
+    setStartX(e.pageX - playlistRef.current.offsetLeft);
+    setScrollLeftState(playlistRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isMouseDown || !playlistRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - playlistRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5; // scroll speed multiplier
+    playlistRef.current.scrollLeft = scrollLeftState - walk;
+  };
+
   return (
     <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4 max-w-xl mx-auto transition-all">
       {/* Header Banner */}
@@ -246,13 +275,22 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
       </div>
 
       {/* Playlist Horizontal Scroll Bar */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 select-none">
         <div className="flex items-center justify-between text-[11px] font-mono font-black text-slate-400 uppercase tracking-wider px-1">
           <span>Playlist de Músicas</span>
           <span>{songs.length} Músicas no Repositório</span>
         </div>
 
-        <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none pt-1">
+        <div
+          ref={playlistRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          className={`flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none pt-1 cursor-grab active:cursor-grabbing ${
+            isMouseDown ? 'select-none' : ''
+          }`}
+        >
           {songs.map((song, sIdx) => {
             // Unlocking logic: Song 0 unlocked. Song N unlocked if Song N-1 complete or if it's custom.
             const prevSong = songs[sIdx - 1];
