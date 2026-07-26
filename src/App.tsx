@@ -449,6 +449,13 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [isMusicPlayerMinimized, setIsMusicPlayerMinimized] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024; // Minimize on mobile by default to keep screen clean
+    }
+    return false;
+  });
+
   // Ephemeral states
   const [activeSequence, setActiveSequence] = useState<string[]>([]);
   const [activeWordIds, setActiveWordIds] = useState<string[]>([]);
@@ -1253,6 +1260,7 @@ export default function App() {
             onClick={() => {
               playTick();
               setIsMusicMode(true);
+              setIsMusicPlayerMinimized(false);
               setIsEbookMode(false);
               setIsReviewMode(false);
               setIsSidebarOpenMobile(false);
@@ -1326,7 +1334,7 @@ export default function App() {
         <div className="flex-1 flex flex-col gap-4">
           
           {/* Upper Info Row */}
-          <div className="bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-950/20 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/40 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="hidden sm:flex bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-950/20 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/40 p-4 rounded-2xl sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-start gap-2.5">
               <span className="text-xl mt-0.5">🧠</span>
               <div>
@@ -1373,27 +1381,41 @@ export default function App() {
             </div>
           )}
 
-          {/* AI Voice Assistant Guidance Bar */}
-          <AIVoiceAssistantCard
-            isEnabled={isVoiceAssistantEnabled}
-            onToggleEnabled={() => {
-              playTick();
-              if (isVoiceAssistantEnabled) stopTutorSpeech();
-              setIsVoiceAssistantEnabled(!isVoiceAssistantEnabled);
-            }}
-            nativeLanguageCode={nativeLanguageCode}
-            onChangeNativeLanguage={(code) => {
-              playTick();
-              setNativeLanguageCode(code);
-            }}
-            currentSpeechText={currentSpeechText}
-            isSpeaking={isAssistantSpeaking}
-            onReplayGuidance={() => triggerTutorGuidance()}
-            targetWord={activeTargetDetails.char}
-            targetTranslation={activeTargetDetails.translation}
-            targetPhonetic={activeTargetDetails.pinyin}
-            targetLanguageName={currentLanguage.name}
-          />
+          {/* AI Voice Assistant Guidance Bar & Minimized Music Playlist Button */}
+          <div className="flex items-center justify-between gap-3 w-full">
+            <AIVoiceAssistantCard
+              isEnabled={isVoiceAssistantEnabled}
+              onToggleEnabled={() => {
+                playTick();
+                if (isVoiceAssistantEnabled) stopTutorSpeech();
+                setIsVoiceAssistantEnabled(!isVoiceAssistantEnabled);
+              }}
+              nativeLanguageCode={nativeLanguageCode}
+              onChangeNativeLanguage={(code) => {
+                playTick();
+                setNativeLanguageCode(code);
+              }}
+              currentSpeechText={currentSpeechText}
+              isSpeaking={isAssistantSpeaking}
+              onReplayGuidance={() => triggerTutorGuidance()}
+              targetWord={activeTargetDetails.char}
+              targetTranslation={activeTargetDetails.translation}
+              targetPhonetic={activeTargetDetails.pinyin}
+              targetLanguageName={currentLanguage.name}
+            />
+            {isMusicMode && isMusicPlayerMinimized && (
+              <button
+                onClick={() => {
+                  playTick();
+                  setIsMusicPlayerMinimized(false);
+                }}
+                className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 via-pink-600 to-indigo-600 text-white shadow-xl border border-pink-400/40 hover:brightness-110 active:scale-95 transition-all cursor-pointer shrink-0 z-20"
+                title="Expandir Playlist de Música"
+              >
+                <Music size={20} className="text-white animate-pulse" />
+              </button>
+            )}
+          </div>
 
           {/* Interactive Floating Words Arena Canvas */}
           <FloatingWordCanvas
@@ -1431,42 +1453,56 @@ export default function App() {
         </div>
 
         {/* Right Side: Persistent Library Sidebar (Desktop) or Sliding Drawer (Mobile) / Ebook / Music Panel */}
-        {isMusicMode ? (
-          <MusicPlayerPanel
-            songs={musicSongs}
-            activeSongId={activeSongId}
-            activeSentenceIndex={activeMusicSentenceIndex}
-            completedSentenceIndices={completedMusicSentenceIndices}
-            onSelectSong={(songId) => {
-              playTick();
-              setActiveSongId(songId);
-              setActiveMusicSentenceIndex(0);
-              handleClearSequence();
-            }}
-            onSelectSentence={(idx) => {
-              playTick();
-              setActiveMusicSentenceIndex(idx);
-              handleClearSequence();
-            }}
-            onAddCustomSong={(newSong) => {
-              playTick();
-              const updated = [...musicSongs, newSong];
-              setMusicSongs(updated);
-              const customOnly = updated.filter(s => s.id.startsWith('song-custom-'));
-              localStorage.setItem('hanzi_dial_custom_songs', JSON.stringify(customOnly));
-              setActiveSongId(newSong.id);
-              setActiveMusicSentenceIndex(0);
-              handleClearSequence();
-            }}
-            onExitMusic={() => {
-              playTick();
-              setIsMusicMode(false);
-              handleClearSequence();
-            }}
-            onSpeakSentence={(text) => {
-              handleSpeakText(text);
-            }}
-          />
+        {isMusicMode && !isMusicPlayerMinimized ? (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm lg:relative lg:inset-auto lg:z-0 lg:bg-transparent lg:backdrop-blur-none lg:p-0 lg:flex-shrink-0 animate-fade-in"
+            onClick={() => setIsMusicPlayerMinimized(true)}
+          >
+            <div 
+              className="w-full max-w-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MusicPlayerPanel
+                songs={musicSongs}
+                activeSongId={activeSongId}
+                activeSentenceIndex={activeMusicSentenceIndex}
+                completedSentenceIndices={completedMusicSentenceIndices}
+                onSelectSong={(songId) => {
+                  playTick();
+                  setActiveSongId(songId);
+                  setActiveMusicSentenceIndex(0);
+                  handleClearSequence();
+                }}
+                onSelectSentence={(idx) => {
+                  playTick();
+                  setActiveMusicSentenceIndex(idx);
+                  handleClearSequence();
+                }}
+                onAddCustomSong={(newSong) => {
+                  playTick();
+                  const updated = [...musicSongs, newSong];
+                  setMusicSongs(updated);
+                  const customOnly = updated.filter(s => s.id.startsWith('song-custom-'));
+                  localStorage.setItem('hanzi_dial_custom_songs', JSON.stringify(customOnly));
+                  setActiveSongId(newSong.id);
+                  setActiveMusicSentenceIndex(0);
+                  handleClearSequence();
+                }}
+                onExitMusic={() => {
+                  playTick();
+                  setIsMusicMode(false);
+                  handleClearSequence();
+                }}
+                onMinimizeMusic={() => {
+                  playTick();
+                  setIsMusicPlayerMinimized(true);
+                }}
+                onSpeakSentence={(text) => {
+                  handleSpeakText(text);
+                }}
+              />
+            </div>
+          </div>
         ) : isEbookMode ? (
           <EbookReaderPanel
             ebookName={ebookName}

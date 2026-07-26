@@ -10,6 +10,7 @@ export interface SongTrack {
   sentences: Sentence[];
   audioUrl?: string; // Optional custom HTML5 audio or synth
   isCustom?: boolean;
+  isHidden?: boolean; // When true, this song is hidden from the playlist UI (used to hide test/prototype songs)
 }
 
 export const PRESET_SONGS: SongTrack[] = [
@@ -301,6 +302,7 @@ export const PRESET_SONGS: SongTrack[] = [
     coverEmoji: '🍯',
     coverGradient: 'from-amber-400 to-rose-400',
     language: 'Chinês Mandarim',
+    isHidden: true, // Prototype/test song — hidden from UI
     sentences: [
       {
         id: 'tm-1',
@@ -383,6 +385,7 @@ export const PRESET_SONGS: SongTrack[] = [
     coverEmoji: '🌙',
     coverGradient: 'from-indigo-500 to-purple-600',
     language: 'Chinês Mandarim',
+    isHidden: true, // Prototype/test song — hidden from UI
     sentences: [
       {
         id: 'mh-1',
@@ -456,6 +459,7 @@ export const PRESET_SONGS: SongTrack[] = [
     coverEmoji: '☀️',
     coverGradient: 'from-amber-300 to-orange-500',
     language: 'Inglês',
+    isHidden: true, // Prototype/test song — hidden from UI
     sentences: [
       {
         id: 'sun-1',
@@ -502,6 +506,7 @@ export const PRESET_SONGS: SongTrack[] = [
     coverEmoji: '🌴',
     coverGradient: 'from-emerald-400 to-teal-600',
     language: 'Espanhol',
+    isHidden: true, // Prototype/test song — hidden from UI
     sentences: [
       {
         id: 'gt-1',

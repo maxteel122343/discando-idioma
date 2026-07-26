@@ -79,6 +79,19 @@ export default function FloatingWordCanvas({
   const [draggedWordId, setDraggedWordId] = useState<string | null>(null);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
 
+  const getFontSize = (text: string) => {
+    if (text.length <= 1) return "text-sm sm:text-2xl";
+    if (text.length <= 3) return "text-xs sm:text-xl";
+    if (text.length <= 6) return "text-[10px] sm:text-lg";
+    return "text-[8px] sm:text-sm";
+  };
+
+  const getPaddingClass = (text: string) => {
+    if (text.length <= 1) return "px-2.5 py-1.5 sm:px-5 sm:py-3";
+    if (text.length <= 3) return "px-2 py-1.5 sm:px-4 sm:py-2.5";
+    return "px-1.5 py-1 sm:px-3 sm:py-2";
+  };
+
   // Find the review sentence if we are in review mode
   const reviewSentence = isReviewMode && reviewSentenceId ? sentences.find(s => s.id === reviewSentenceId) : null;
 
@@ -199,6 +212,7 @@ export default function FloatingWordCanvas({
             return word;
           }
 
+          const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
           let nextX = word.x;
           let nextY = word.y;
           let nextVx = word.vx;
@@ -210,9 +224,10 @@ export default function FloatingWordCanvas({
             const dy = word.y - 50;
             let radius = Math.sqrt(dx * dx + dy * dy);
             
-            // Lock radius between 36% and 47% so cards NEVER enter the dialing zone or drift out of boundaries
+            // Lock radius so cards NEVER enter the dialing zone or drift out of boundaries on narrow mobile screens
+            const maxRadius = isMobile ? 42 : 47;
             if (radius < 36) radius = 36;
-            if (radius > 47) radius = 47;
+            if (radius > maxRadius) radius = maxRadius;
 
             const angle = Math.atan2(dy, dx);
             // Alternate clockwise and counter-clockwise direction based on index
@@ -227,14 +242,19 @@ export default function FloatingWordCanvas({
             nextX = word.x + word.vx * cardSpeed;
             nextY = word.y + word.vy * cardSpeed;
 
-            // Bounce off container boundaries
-            if (nextX < 4 || nextX > 96) {
+            // Bounce off container boundaries with safer margins on mobile
+            const minX = isMobile ? 12 : 6;
+            const maxX = isMobile ? 88 : 94;
+            const minY = isMobile ? 10 : 6;
+            const maxY = isMobile ? 90 : 94;
+
+            if (nextX < minX || nextX > maxX) {
               nextVx = -word.vx;
-              nextX = Math.max(4, Math.min(96, nextX));
+              nextX = Math.max(minX, Math.min(maxX, nextX));
             }
-            if (nextY < 4 || nextY > 96) {
+            if (nextY < minY || nextY > maxY) {
               nextVy = -word.vy;
-              nextY = Math.max(4, Math.min(96, nextY));
+              nextY = Math.max(minY, Math.min(maxY, nextY));
             }
 
             // Bounce off central dialing ring (strict clearance at radius 36)
@@ -539,7 +559,7 @@ export default function FloatingWordCanvas({
   return (
     <div 
       ref={containerRef}
-      className={`relative flex-1 h-[550px] lg:h-full min-h-[500px] w-full rounded-3xl overflow-hidden shadow-inner transition-colors duration-300 ${
+      className={`relative flex-1 h-[440px] xs:h-[480px] sm:h-[550px] lg:h-full min-h-[420px] sm:min-h-[500px] w-full rounded-3xl overflow-hidden shadow-inner transition-colors duration-300 ${
         isMonochrome
           ? "bg-slate-100 dark:bg-zinc-950 border-2 border-zinc-900 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100"
           : "bg-[#F5F3FF] dark:bg-[#120E25] border border-indigo-150 dark:border-indigo-950"
@@ -588,25 +608,25 @@ export default function FloatingWordCanvas({
       </div>
 
       {/* Top Header Row with Language Selector & Controls (Directly on canvas arena) */}
-      <div className="absolute top-4 left-4 right-4 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none select-none">
+      <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 z-30 flex items-center justify-between gap-1.5 pointer-events-none select-none">
         
         {/* Left Side: Game Mode Label & Language Selector */}
-        <div className="flex flex-wrap items-center gap-2 pointer-events-auto relative">
+        <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto relative">
           
           {/* Category / Game Mode Pill */}
           {isReviewMode ? (
-            <div className="flex items-center gap-1.5 bg-violet-600 text-white dark:bg-violet-900 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[11px] font-mono tracking-wider font-bold border border-violet-500 shadow-md">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse" />
+            <div className="flex items-center gap-1 bg-violet-600 text-white dark:bg-violet-900 backdrop-blur-md px-2 py-1 rounded-full text-[9px] md:text-[11px] font-mono tracking-wider font-bold border border-violet-500 shadow-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse" />
               MODO REVISÃO
             </div>
           ) : (
-            <div className={`flex items-center gap-1.5 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[11px] font-mono tracking-wider font-bold border shadow-sm ${
+            <div className={`flex items-center gap-1 backdrop-blur-md px-2 py-1 rounded-full text-[9px] md:text-[11px] font-mono tracking-wider font-bold border shadow-sm ${
               isMonochrome
                 ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-900 dark:border-zinc-700"
                 : "bg-white/80 dark:bg-slate-900/80 border-indigo-100 dark:border-indigo-900/50 text-indigo-650 dark:text-indigo-450"
             }`}>
-              <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${isMonochrome ? "bg-zinc-900 dark:bg-zinc-100" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`} />
-              CATEGORIA: {currentCategory.toUpperCase()}
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isMonochrome ? "bg-zinc-900 dark:bg-zinc-100" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`} />
+              CAT: {currentCategory.toUpperCase()}
             </div>
           )}
 
@@ -615,16 +635,16 @@ export default function FloatingWordCanvas({
             <div className="relative pointer-events-auto">
               <button
                 onClick={() => { playTick(); setIsLangMenuOpen(!isLangMenuOpen); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black transition-all shadow-md active:scale-95 cursor-pointer border ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] md:text-[11px] font-black transition-all shadow-md active:scale-95 cursor-pointer border ${
                   isMonochrome
                     ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
                     : "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-500 shadow-indigo-500/20"
                 }`}
                 title="Mudar Idioma Diretamente na Tela do Discador"
               >
-                <span className="text-sm">{currentLanguage.flag}</span>
+                <span className="text-xs">{currentLanguage.flag}</span>
                 <span className="font-extrabold tracking-wide">{currentLanguage.name}</span>
-                <ChevronDown size={12} className={`transition-transform duration-200 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={10} className={`transition-transform duration-200 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Language Selection Popover */}
@@ -634,9 +654,9 @@ export default function FloatingWordCanvas({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-10 left-0 mt-1 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1 max-h-64 overflow-y-auto custom-scrollbar"
+                    className="absolute top-10 left-0 mt-1 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 space-y-0.5 max-h-64 overflow-y-auto custom-scrollbar"
                   >
-                    <p className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-wider px-2 py-1">
+                    <p className="text-[8px] font-mono font-black text-slate-400 uppercase tracking-wider px-2 py-0.5">
                       Idiomas Disponíveis
                     </p>
                     {allLanguages.map((lang) => {
@@ -649,17 +669,17 @@ export default function FloatingWordCanvas({
                             onSelectLanguage(lang.id);
                             setIsLangMenuOpen(false);
                           }}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-between cursor-pointer ${
                             isSelected
                               ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-extrabold"
                               : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">{lang.flag}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs">{lang.flag}</span>
                             <span>{lang.name}</span>
                           </div>
-                          {isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
+                          {isSelected && <Check size={12} className="text-indigo-600 dark:text-indigo-400" />}
                         </button>
                       );
                     })}
@@ -669,11 +689,11 @@ export default function FloatingWordCanvas({
             </div>
           )}
 
-          {/* Theme Palette Toggle Button (Monochrome P&B vs Vibrant Colors) */}
+          {/* Theme Palette Toggle Button (Monochrome P&B vs Vibrant Colors) - Hidden on mobile */}
           {onToggleMonochrome && (
             <button
               onClick={() => { playTick(); onToggleMonochrome(); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
                 isMonochrome
                   ? "bg-black text-white dark:bg-white dark:text-black border-zinc-800 dark:border-zinc-200 ring-2 ring-zinc-400/40"
                   : "bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 border-indigo-100 dark:border-indigo-900/50 hover:bg-slate-100"
@@ -685,11 +705,11 @@ export default function FloatingWordCanvas({
             </button>
           )}
 
-          {/* Hint Toggle Button */}
+          {/* Hint Toggle Button - Hidden on mobile */}
           {onToggleHint && (
             <button
               onClick={() => { playTick(); onToggleHint(); }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
+              className={`hidden md:flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
                 isHintEnabled
                   ? "bg-amber-400 text-slate-950 border-amber-500 shadow-amber-500/20 font-black"
                   : "bg-white/80 dark:bg-slate-900/80 text-slate-400 border-slate-200 dark:border-slate-800 opacity-80"
@@ -704,37 +724,37 @@ export default function FloatingWordCanvas({
         </div>
 
         {/* Right Side Action Buttons */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+        <div className="flex items-center gap-1 md:gap-2 pointer-events-auto">
           <button
             onClick={handleOrganizeWords}
             title="Espalhar e Organizar Palavras Sem Sobrepor"
-            className="flex items-center justify-center p-2.5 rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/20 shadow-md border-2 border-indigo-100 dark:border-indigo-900 transition-all text-indigo-600 dark:text-indigo-400 active:scale-95 cursor-pointer"
+            className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-indigo-600 dark:text-indigo-400 active:scale-95 cursor-pointer"
           >
-            <LayoutGrid size={18} />
+            <LayoutGrid className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
           </button>
           {isReviewMode && (
             <button
               onClick={onNextReviewSentence}
               title="Pular / Próxima Frase"
-              className="flex items-center justify-center p-2.5 rounded-2xl bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 shadow-md border-2 border-violet-100 dark:border-violet-900 transition-all text-violet-600 dark:text-violet-400 active:scale-95 cursor-pointer"
+              className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 shadow-md border border-violet-100 dark:border-violet-900 transition-all text-violet-600 dark:text-violet-400 active:scale-95 cursor-pointer"
             >
-              <RefreshCw size={18} />
+              <RefreshCw className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
             </button>
           )}
           <button
             onClick={triggerHint}
             title="Destacar Próxima Palavra"
-            className="flex items-center justify-center p-2.5 rounded-2xl bg-white hover:bg-amber-50 dark:bg-slate-900 dark:hover:bg-amber-950/20 shadow-md border-2 border-indigo-100 dark:border-indigo-900 transition-all text-amber-500 active:scale-95 cursor-pointer"
+            className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-amber-50 dark:bg-slate-900 dark:hover:bg-amber-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-amber-500 active:scale-95 cursor-pointer"
           >
-            <HelpCircle size={18} />
+            <HelpCircle className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
           </button>
           <button
             onClick={onClearSequence}
             disabled={activeSequence.length === 0}
             title="Limpar Disco Central"
-            className="flex items-center justify-center p-2.5 rounded-2xl bg-white hover:bg-red-50 hover:text-red-500 dark:bg-slate-900 dark:hover:bg-red-950/50 dark:hover:text-red-400 shadow-md border-2 border-indigo-100 dark:border-indigo-900 transition-all text-slate-500 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-500 active:scale-95 cursor-pointer"
+            className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-red-50 hover:text-red-500 dark:bg-slate-900 dark:hover:bg-red-950/50 dark:hover:text-red-400 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-slate-500 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-500 active:scale-95 cursor-pointer"
           >
-            <Trash2 size={18} />
+            <Trash2 className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
           </button>
         </div>
       </div>
@@ -776,7 +796,7 @@ export default function FloatingWordCanvas({
               >
                 <div
                   className={`
-                    relative flex flex-col items-center justify-center px-5 py-3 rounded-3xl select-none transition-all border-2
+                    relative flex flex-col items-center justify-center ${getPaddingClass(word.text)} rounded-2xl sm:rounded-3xl select-none transition-all border-2
                     ${
                       isMonochrome
                         ? isHinted
@@ -788,13 +808,13 @@ export default function FloatingWordCanvas({
                     }
                   `}
                 >
-                  <span className="block text-2xl sm:text-3xl font-black tracking-tight mb-0.5">{word.text}</span>
-                  <span className={`block text-[8px] font-black tracking-widest uppercase opacity-85 ${
+                  <span className="block text-center font-black tracking-tight mb-0.5 max-w-[120px] sm:max-w-[200px] truncate leading-tight"><span className={getFontSize(word.text)}>{word.text}</span></span>
+                  <span className={`block text-[7px] sm:text-[8px] font-black tracking-widest uppercase opacity-85 ${
                     isHinted 
                       ? isMonochrome ? 'text-zinc-200 dark:text-zinc-800 font-extrabold' : 'text-amber-950 font-extrabold' 
                       : isMonochrome ? 'text-zinc-500 dark:text-zinc-400' : colors.text
                   }`}>
-                    {isHinted ? '▶ PRÓXIMA PALAVRA' : `${phoneticLabel} • LINGUO`}
+                    {isHinted ? '▶ PRÓXIMA' : `${phoneticLabel}`}
                   </span>
                 </div>
               </motion.div>
@@ -805,7 +825,7 @@ export default function FloatingWordCanvas({
 
       {/* Central Dial Zone (The old-fashioned dialer ring matching mockup) */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-        <div className="relative w-[360px] h-[360px] sm:w-[420px] sm:h-[420px] flex items-center justify-center pointer-events-none">
+        <div className="relative w-[280px] h-[280px] xs:w-[320px] xs:h-[320px] sm:w-[420px] sm:h-[420px] flex items-center justify-center pointer-events-none">
           
           {/* Concentric Decorative Rings from the mock */}
           <div className={`absolute inset-0 border-4 border-dashed rounded-full animate-pulse ${
@@ -818,7 +838,7 @@ export default function FloatingWordCanvas({
           <div
             id="central-dial-zone"
             className={`
-              relative flex flex-col items-center justify-center h-64 w-64 sm:h-72 sm:w-72 rounded-full border-4 pointer-events-auto transition-all duration-300 shadow-2xl
+              relative flex flex-col items-center justify-center h-48 w-48 xs:h-56 xs:w-56 sm:h-72 sm:w-72 rounded-full border-4 pointer-events-auto transition-all duration-300 shadow-2xl
               ${
                 isMonochrome
                   ? glowState === 'idle'
@@ -853,7 +873,7 @@ export default function FloatingWordCanvas({
                   <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mt-1">
                     SOLTE AQUI
                   </p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 px-4 leading-normal font-medium">
+                  <p className="hidden xs:block text-[10px] text-slate-400 dark:text-slate-500 px-4 leading-normal font-medium">
                     Arraste os ideogramas para o centro para discar a frase
                   </p>
                   {onTriggerVoiceGuidance && (

@@ -31,7 +31,12 @@ export default function AIVoiceAssistantCard({
   targetLanguageName = 'Idioma'
 }: AIVoiceAssistantCardProps) {
   const [isExpanded, setIsExpanded] = useState(false); // Minimized by default as requested
-  const [isIconOnly, setIsIconOnly] = useState(false); // icon-only mode
+  const [isIconOnly, setIsIconOnly] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024; // Default to icon-only on mobile/tablet
+    }
+    return false;
+  }); // icon-only mode
   const [isListening, setIsListening] = useState(false);
   const [isHandsFree, setIsHandsFree] = useState(false);
   const [speechFeedback, setSpeechFeedback] = useState<string | null>(null);

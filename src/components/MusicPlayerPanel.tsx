@@ -17,6 +17,7 @@ interface MusicPlayerPanelProps {
   onSpeakSentence: (text: string) => void;
   onAddCustomSong: (newSong: SongTrack) => void;
   onExitMusic?: () => void;
+  onMinimizeMusic?: () => void;
   activeSequence?: string[];
   isHintEnabled?: boolean;
   isMonochrome?: boolean;
@@ -32,6 +33,7 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
   onSpeakSentence,
   onAddCustomSong,
   onExitMusic,
+  onMinimizeMusic,
   activeSequence,
   isHintEnabled,
   isMonochrome,
@@ -199,6 +201,9 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
   const totalSentences = sentences.length;
   const isSongCompleted = totalSentences > 0 && completedCount === totalSentences;
 
+  // Only show songs that are NOT hidden (isHidden !== true), plus always show custom user-added songs
+  const visibleSongs = songs.filter(s => !s.isHidden || s.isCustom);
+
   // Drag to scroll logic for playlist container
   const playlistRef = useRef<HTMLDivElement | null>(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
@@ -262,11 +267,18 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
             <Plus size={14} />
             <span>Nova Música</span>
           </button>
-          {onExitMusic && (
+          {(onMinimizeMusic || onExitMusic) && (
             <button
-              onClick={() => { playTick(); onExitMusic(); }}
+              onClick={() => { 
+                playTick(); 
+                if (onMinimizeMusic) {
+                  onMinimizeMusic();
+                } else if (onExitMusic) {
+                  onExitMusic();
+                }
+              }}
               className="p-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-all active:scale-95 cursor-pointer"
-              title="Sair do Modo Música"
+              title="Minimizar Playlist"
             >
               <X size={16} />
             </button>
@@ -287,13 +299,13 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
-          className={`flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none pt-1 cursor-grab active:cursor-grabbing ${
+          className={`flex items-center gap-2.5 overflow-x-auto pb-2 custom-scrollbar pt-1 cursor-grab active:cursor-grabbing ${
             isMouseDown ? 'select-none' : ''
           }`}
         >
-          {songs.map((song, sIdx) => {
+          {visibleSongs.map((song, sIdx) => {
             // Unlocking logic: Song 0 unlocked. Song N unlocked if Song N-1 complete or if it's custom.
-            const prevSong = songs[sIdx - 1];
+            const prevSong = visibleSongs[sIdx - 1];
             const isUnlocked =
               sIdx === 0 ||
               song.isCustom ||
