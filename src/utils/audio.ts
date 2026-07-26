@@ -183,7 +183,11 @@ let googleTtsAudio: HTMLAudioElement | null = null;
  * Returns true on success, false if unavailable or errored.
  */
 async function speakWithGoogleTTS(text: string, ttsCode: string, rate: number): Promise<boolean> {
-  const apiKey = (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY;
+  const apiKey: string =
+    (window as any).__GOOGLE_TTS_KEY__ ||
+    localStorage.getItem('hanzi_dial_google_tts_key') ||
+    (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY ||
+    '';
   if (!apiKey) return false;
 
   const prefix = ttsCode.split('-')[0].toLowerCase();

@@ -19,7 +19,12 @@ const GOOGLE_TUTOR_VOICES: Record<string, { name: string; gender: string }> = {
 let _googleTtsAudio: HTMLAudioElement | null = null;
 
 async function _speakGoogleTTS(text: string, langCode: string, rate: number): Promise<boolean> {
-  const apiKey = (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY;
+  // Check runtime key first (set via Settings UI), then build-time env var
+  const apiKey: string =
+    (window as any).__GOOGLE_TTS_KEY__ ||
+    localStorage.getItem('hanzi_dial_google_tts_key') ||
+    (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY ||
+    '';
   if (!apiKey) return false;
   const prefix = langCode.split('-')[0].toLowerCase();
   const voice = GOOGLE_TUTOR_VOICES[prefix] || { name: `${langCode}-Wavenet-A`, gender: 'FEMALE' };

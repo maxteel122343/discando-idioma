@@ -7,6 +7,7 @@ import { PoetryPlayerPanel } from './components/PoetryPlayerPanel';
 import InstructionsModal from './components/InstructionsModal';
 import AIVoiceAssistantCard from './components/AIVoiceAssistantCard';
 import MusicVitrine from './components/MusicVitrine';
+import CelebrationToast from './components/CelebrationToast';
 import { SENTENCES } from './data/sentences';
 import { LANGUAGES, LanguageConfig } from './data/languages';
 import { PRESET_SONGS, SongTrack } from './data/musicPlaylist';
@@ -400,6 +401,9 @@ export default function App() {
 
   // Settings popup visibility
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [googleTtsKey, setGoogleTtsKey] = useState<string>(() => {
+    return localStorage.getItem('hanzi_dial_google_tts_key') || '';
+  });
 
   // Ebook states (defaulting to Ebook mode active by default)
   const [isEbookMode, setIsEbookMode] = useState<boolean>(() => {
@@ -1773,30 +1777,13 @@ export default function App() {
 
       </main>
 
-      {/* Floating Success Celebration Toast - centered overlay */}
-      {showCelebration && celebratedSentence && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
-          <div className="pointer-events-auto bg-[#120E25] text-white dark:bg-slate-900 shadow-2xl border-2 border-indigo-500/80 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 animate-slide-up w-full max-w-sm mx-auto">
-            <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0 text-xl shadow-inner border border-indigo-500/40">
-              {isReviewMode ? '🔁' : '🎉'}
-            </div>
-            <div className="flex-1 min-w-0 text-center sm:text-left">
-              <h5 className="text-xs font-mono font-bold tracking-widest text-orange-400 uppercase mb-0.5">
-                {isReviewMode ? 'Frase Revisada! (+15 XP)' : 'Frase Desbloqueada! (+15 XP)'}
-              </h5>
-              <h3 className="text-xl font-black font-sans tracking-wide text-white">
-                {joinSentence(celebratedSentence.characters)}
-              </h3>
-              <p className="text-[12px] font-bold text-indigo-300 mt-0.5">
-                {celebratedSentence.pinyin}
-              </p>
-              <p className="text-[11px] text-slate-300 mt-0.5 truncate">
-                {celebratedSentence.translation}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Celebration Toast - rendered via React Portal to avoid parent transform clipping */}
+      <CelebrationToast
+        show={showCelebration}
+        sentence={celebratedSentence}
+        isReviewMode={isReviewMode}
+        joinSentence={joinSentence}
+      />
 
       {/* Help / Instructions Modal */}
       <InstructionsModal
@@ -2025,6 +2012,37 @@ export default function App() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Google TTS API Key */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 text-xs">
+                <Volume2 size={14} className="text-indigo-600 dark:text-indigo-400" />
+                <span className="font-bold text-slate-700 dark:text-slate-300">Voz Neural Google TTS (opcional)</span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={googleTtsKey}
+                  onChange={(e) => setGoogleTtsKey(e.target.value)}
+                  placeholder="Cole sua API Key do Google TTS aqui"
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+                <button
+                  onClick={() => {
+                    localStorage.setItem('hanzi_dial_google_tts_key', googleTtsKey);
+                    // inject into window for immediate use
+                    (window as any).__GOOGLE_TTS_KEY__ = googleTtsKey;
+                    playTick();
+                  }}
+                  className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-500 transition-all cursor-pointer"
+                >
+                  Salvar
+                </button>
+              </div>
+              <p className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">
+                Ativa vozes Neural2/Wavenet. Obtenha em console.cloud.google.com &gt; Text-to-Speech API
+              </p>
             </div>
 
             <div className="bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-900/30 p-3 rounded-2xl text-[10px] leading-relaxed text-indigo-900/80 dark:text-indigo-300/80 font-medium">
