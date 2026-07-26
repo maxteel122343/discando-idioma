@@ -18,9 +18,8 @@ interface MusicPlayerPanelProps {
   onAddCustomSong: (newSong: SongTrack) => void;
   onExitMusic?: () => void;
   onMinimizeMusic?: () => void;
-  activeSequence?: string[];
-  isHintEnabled?: boolean;
-  isMonochrome?: boolean;
+  isPlaying?: boolean;
+  onTogglePlay?: () => void;
 }
 
 export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
@@ -34,15 +33,15 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
   onAddCustomSong,
   onExitMusic,
   onMinimizeMusic,
-  activeSequence,
-  isHintEnabled,
-  isMonochrome,
+  isPlaying: propIsPlaying,
+  onTogglePlay: propOnTogglePlay,
 }) => {
   const currentSong = songs.find((s) => s.id === activeSongId) || songs[0];
   const sentences = currentSong?.sentences || [];
 
   // Playback states
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [localIsPlaying, setLocalIsPlaying] = useState<boolean>(false);
+  const isPlaying = propIsPlaying !== undefined ? propIsPlaying : localIsPlaying;
   const [isLoopSentenceMode, setIsLoopSentenceMode] = useState<boolean>(false); // Music autoplay ON by default, sentence pronunciation repeat OFF
   const [volume, setVolume] = useState<number>(0.7);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -63,7 +62,13 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
 
   // Autoplay on song change
   useEffect(() => {
-    setIsPlaying(true);
+    if (propOnTogglePlay) {
+      if (!propIsPlaying) {
+        propOnTogglePlay();
+      }
+    } else {
+      setLocalIsPlaying(true);
+    }
   }, [activeSongId]);
 
   // Handle HTML5 Audio element setup when audioUrl exists
@@ -135,7 +140,11 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
 
   const togglePlay = () => {
     playTick();
-    setIsPlaying(!isPlaying);
+    if (propOnTogglePlay) {
+      propOnTogglePlay();
+    } else {
+      setLocalIsPlaying(!localIsPlaying);
+    }
   };
 
   const handleCustomFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

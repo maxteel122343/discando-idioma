@@ -37,7 +37,10 @@ import {
   FolderOpen,
   Globe,
   Palette,
-  Lightbulb
+  Lightbulb,
+  Play,
+  Pause,
+  SkipForward
 } from 'lucide-react';
 
 const PRELOADED_BOOKS: Record<string, { name: string; sentences: Sentence[] }> = {
@@ -458,6 +461,8 @@ export default function App() {
     const saved = localStorage.getItem(`hanzi_dial_completed_music_indices_${activeId}`);
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
 
   const [isMusicPlayerMinimized, setIsMusicPlayerMinimized] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -1100,22 +1105,24 @@ export default function App() {
           <div className="flex items-center gap-2 sm:gap-3">
 
             {/* Quick XP progress indicator */}
-            <div className="flex items-center gap-2 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1.5 rounded-full text-[11px] font-bold text-indigo-650 dark:text-indigo-450 shadow-sm">
-              <Trophy size={13} className="text-amber-500 shrink-0 animate-bounce" />
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                <span className="whitespace-nowrap">Level <strong className="font-extrabold text-slate-850 dark:text-slate-200">{Math.floor(totalXp / 100) + 1}</strong></span>
-                <span className="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">{totalXp % 100}/100 XP</span>
-                  <div className="w-12 sm:w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                    <div 
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                      style={{ width: `${totalXp % 100}%` }}
-                    />
+            {!isMusicMode && (
+              <div className="flex items-center gap-2 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1.5 rounded-full text-[11px] font-bold text-indigo-650 dark:text-indigo-450 shadow-sm">
+                <Trophy size={13} className="text-amber-500 shrink-0 animate-bounce" />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                  <span className="whitespace-nowrap">Level <strong className="font-extrabold text-slate-850 dark:text-slate-200">{Math.floor(totalXp / 100) + 1}</strong></span>
+                  <span className="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">{totalXp % 100}/100 XP</span>
+                    <div className="w-12 sm:w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                      <div 
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                        style={{ width: `${totalXp % 100}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Music Mode Switcher Button - Desktop only, mobile uses bottom nav */}
             <button
@@ -1332,24 +1339,7 @@ export default function App() {
         {/* Left Side: Game Canvas & Quick Level selector */}
         <div className="flex-1 flex flex-col gap-4">
           
-          {/* Upper Info Row */}
-          <div className="hidden sm:flex bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-950/20 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/40 p-4 rounded-2xl sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-            <div className="flex items-start gap-2.5">
-              <span className="text-xl mt-0.5">🧠</span>
-              <div>
-                <h4 className="text-xs font-black text-indigo-900 dark:text-indigo-200">Como funciona a mecânica?</h4>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed font-semibold">
-                  Arraste cada palavra chinesa na ordem correta da frase para o <strong className="text-indigo-600 dark:text-indigo-400 font-bold">disco de discagem central</strong> como se estivesse usando um telefone antigo clássico.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex-shrink-0">
-              <span className="text-[10px] font-mono font-bold text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 rounded-full border border-indigo-100 dark:border-indigo-900/40">
-                METODOLOGIA DE DISCO SVO
-              </span>
-            </div>
-          </div>
+
 
           {isReviewMode && (
             <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg border border-violet-500">
@@ -1380,28 +1370,48 @@ export default function App() {
             </div>
           )}
 
-          {/* AI Voice Assistant Guidance Bar & Minimized Music Playlist Button */}
+          {/* AI Voice Assistant Guidance Bar (Home/Review) vs Level Badge (Music Mode) & Minimized Playlist Button */}
           <div className="flex items-center justify-between gap-3 w-full">
-            <AIVoiceAssistantCard
-              isEnabled={isVoiceAssistantEnabled}
-              onToggleEnabled={() => {
-                playTick();
-                if (isVoiceAssistantEnabled) stopTutorSpeech();
-                setIsVoiceAssistantEnabled(!isVoiceAssistantEnabled);
-              }}
-              nativeLanguageCode={nativeLanguageCode}
-              onChangeNativeLanguage={(code) => {
-                playTick();
-                setNativeLanguageCode(code);
-              }}
-              currentSpeechText={currentSpeechText}
-              isSpeaking={isAssistantSpeaking}
-              onReplayGuidance={() => triggerTutorGuidance()}
-              targetWord={activeTargetDetails.char}
-              targetTranslation={activeTargetDetails.translation}
-              targetPhonetic={activeTargetDetails.pinyin}
-              targetLanguageName={currentLanguage.name}
-            />
+            {!isMusicMode ? (
+              <AIVoiceAssistantCard
+                isEnabled={isVoiceAssistantEnabled}
+                onToggleEnabled={() => {
+                  playTick();
+                  if (isVoiceAssistantEnabled) stopTutorSpeech();
+                  setIsVoiceAssistantEnabled(!isVoiceAssistantEnabled);
+                }}
+                nativeLanguageCode={nativeLanguageCode}
+                onChangeNativeLanguage={(code) => {
+                  playTick();
+                  setNativeLanguageCode(code);
+                }}
+                currentSpeechText={currentSpeechText}
+                isSpeaking={isAssistantSpeaking}
+                onReplayGuidance={() => triggerTutorGuidance()}
+                targetWord={activeTargetDetails.char}
+                targetTranslation={activeTargetDetails.translation}
+                targetPhonetic={activeTargetDetails.pinyin}
+                targetLanguageName={currentLanguage.name}
+              />
+            ) : (
+              /* Level Badge rendered under logo in place of the assistant robot button in Music Mode */
+              <div className="flex items-center gap-2 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1.5 rounded-full text-[11px] font-bold text-indigo-650 dark:text-indigo-450 shadow-sm z-20">
+                <Trophy size={13} className="text-amber-500 shrink-0 animate-bounce" />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                  <span className="whitespace-nowrap">Level <strong className="font-extrabold text-slate-850 dark:text-slate-200">{Math.floor(totalXp / 100) + 1}</strong></span>
+                  <span className="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">{totalXp % 100}/100 XP</span>
+                    <div className="w-12 sm:w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                      <div 
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                        style={{ width: `${totalXp % 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {isMusicMode && isMusicPlayerMinimized && (
               <button
                 onClick={() => {
@@ -1424,6 +1434,8 @@ export default function App() {
                 activeSongId={activeSongId}
                 activeSentenceIndex={activeMusicSentenceIndex}
                 completedSentenceIndices={completedMusicSentenceIndices}
+                isPlaying={isMusicPlaying}
+                onTogglePlay={() => setIsMusicPlaying(!isMusicPlaying)}
                 onSelectSong={(songId) => {
                   playTick();
                   setActiveSongId(songId);
@@ -1522,6 +1534,33 @@ export default function App() {
                       </p>
                     </div>
                   </div>
+                  
+                  {/* Play & Next control icons inside lyrics header */}
+                  <div className="flex items-center gap-1.5 pointer-events-auto">
+                    <button
+                      onClick={() => {
+                        playTick();
+                        setIsMusicPlaying(!isMusicPlaying);
+                      }}
+                      className="p-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-indigo-400 active:scale-95 transition-all shadow-sm border border-indigo-100/40 cursor-pointer"
+                      title={isMusicPlaying ? "Pausar música" : "Tocar música"}
+                    >
+                      {isMusicPlaying ? <Pause size={13} className="fill-indigo-600 dark:fill-indigo-400" /> : <Play size={13} className="fill-indigo-600 dark:fill-indigo-400" />}
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        playTick();
+                        const nextIdx = (activeMusicSentenceIndex + 1) % sentences.length;
+                        setActiveMusicSentenceIndex(nextIdx);
+                        handleClearSequence();
+                      }}
+                      className="p-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-indigo-400 active:scale-95 transition-all shadow-sm border border-indigo-100/40 cursor-pointer"
+                      title="Próxima frase"
+                    >
+                      <SkipForward size={13} />
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
@@ -1600,6 +1639,8 @@ export default function App() {
               activeSongId={activeSongId}
               activeSentenceIndex={activeMusicSentenceIndex}
               completedSentenceIndices={completedMusicSentenceIndices}
+              isPlaying={isMusicPlaying}
+              onTogglePlay={() => setIsMusicPlaying(!isMusicPlaying)}
               onSelectSong={(songId) => {
                 playTick();
                 setActiveSongId(songId);
