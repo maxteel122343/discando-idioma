@@ -20,6 +20,9 @@ export default function MusicVitrine({
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
+  // Only show non-hidden songs
+  const visibleSongs = songs.filter(s => !s.isHidden);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setStartX(e.pageX - (scrollRef.current?.offsetLeft || 0));
@@ -45,7 +48,7 @@ export default function MusicVitrine({
         className={`flex gap-2 overflow-x-auto pb-1 select-none cursor-grab active:cursor-grabbing`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {songs.map((song, idx) => {
+        {visibleSongs.map((song, idx) => {
           const isCurrent = song.id === activeSongId;
           const isUnlocked = idx === 0 || song.isCustom || true; // always unlock for now
 

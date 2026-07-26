@@ -1109,7 +1109,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-                Telefone de Ideogramas
+                Discador de Ideogramas
               </h1>
               <p className="text-[10px] font-mono font-bold tracking-wider text-indigo-600 dark:text-indigo-400 uppercase">
                 Hanzi Rotary Dialer
@@ -1120,25 +1120,7 @@ export default function App() {
           {/* Controls & Badges */}
           <div className="flex items-center gap-2 sm:gap-3">
 
-            {/* Quick XP progress indicator */}
-            {!isMusicMode && (
-              <div className="flex items-center gap-2 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1.5 rounded-full text-[11px] font-bold text-indigo-650 dark:text-indigo-450 shadow-sm">
-                <Trophy size={13} className="text-amber-500 shrink-0 animate-bounce" />
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                  <span className="whitespace-nowrap">Level <strong className="font-extrabold text-slate-850 dark:text-slate-200">{Math.floor(totalXp / 100) + 1}</strong></span>
-                  <span className="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">{totalXp % 100}/100 XP</span>
-                    <div className="w-12 sm:w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                      <div 
-                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                        style={{ width: `${totalXp % 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Level XP badge hidden per user request */}
 
             {/* Music Mode Switcher Button - Desktop only, mobile uses bottom nav */}
             <button
@@ -1286,6 +1268,7 @@ export default function App() {
               setIsEbookMode(false);
               setIsReviewMode(false);
               setIsSidebarOpenMobile(false);
+              setIsMusicPlaying(true);
               handleClearSequence();
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
@@ -1441,61 +1424,7 @@ export default function App() {
           {!isMusicMode && !isEbookMode && !isReviewMode ? (
             /* Home Dashboard Summary */
             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-xl space-y-6 w-full flex-1 flex flex-col justify-center animate-fade-in">
-              <div className="text-center space-y-2 max-w-md mx-auto">
-                <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-500 via-pink-500 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                  <Hand size={28} />
-                </div>
-                <h2 className="text-xl font-black text-slate-850 dark:text-slate-100 tracking-tight">
-                  Bem-vindo!
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  Escolha um modo de aprendizado abaixo para iniciar sua discagem e treinar o idioma de forma ativa!
-                </p>
-              </div>
-
-              {/* Stats Grid Dashboard */}
-              <div className="grid grid-cols-2 gap-4 sm:max-w-xl sm:mx-auto w-full">
-                {/* Level / XP */}
-                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
-                  <Trophy size={20} className="mx-auto text-amber-500" />
-                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Nível Atual</div>
-                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">Level {Math.floor(totalXp / 100) + 1}</div>
-                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">{totalXp % 100}/100 XP</div>
-                </div>
-
-                {/* Completed Sentences */}
-                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
-                  <CheckCircle size={20} className="mx-auto text-emerald-500" />
-                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Frases Concluídas</div>
-                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">{completedSentenceIds.length} Frases</div>
-                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Treinos Gerais</div>
-                </div>
-
-                {/* Completed Songs */}
-                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
-                  <Music size={20} className="mx-auto text-indigo-500" />
-                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Músicas Concluídas</div>
-                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">
-                    {(() => {
-                      const completedSongs = musicSongs.filter(song => {
-                        const saved = localStorage.getItem(`hanzi_dial_completed_music_indices_${song.id}`);
-                        const completedIdxs: number[] = saved ? JSON.parse(saved) : [];
-                        return song.sentences.length > 0 && completedIdxs.length === song.sentences.length;
-                      });
-                      return completedSongs.length;
-                    })()} Músicas
-                  </div>
-                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Playlist Completa</div>
-                </div>
-
-                {/* Dial Errors */}
-                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
-                  <AlertTriangle size={20} className="mx-auto text-red-500" />
-                  <div className="text-[10px] font-mono font-black text-red-400 dark:text-red-500 uppercase tracking-widest">Erros de Discagem</div>
-                  <div className="text-lg font-black text-red-600 dark:text-red-450">{dialErrorsCount} Erros</div>
-                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Erros Detectados</div>
-                </div>
-              </div>
+              {/* Welcome section, stats grid hidden per user request */}
 
               {/* Mode Selectors Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:max-w-xl sm:mx-auto w-full pt-2">
@@ -1504,6 +1433,7 @@ export default function App() {
                   onClick={() => {
                     playTick();
                     setIsMusicMode(true);
+                    setIsMusicPlaying(true);
                     setIsEbookMode(false);
                     setIsReviewMode(false);
                   }}
