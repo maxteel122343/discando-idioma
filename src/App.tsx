@@ -338,6 +338,16 @@ const PRELOADED_BOOKS: Record<string, { name: string; sentences: Sentence[] }> =
   }
 };
 
+const getLanguageIdFromSong = (songLanguage: string): string => {
+  const lang = songLanguage.toLowerCase();
+  if (lang.includes('inglês') || lang.includes('english')) return 'en';
+  if (lang.includes('chinês') || lang.includes('mandarim') || lang.includes('chinese')) return 'zh';
+  if (lang.includes('espanhol') || lang.includes('spanish')) return 'es';
+  if (lang.includes('italiano') || lang.includes('italian')) return 'it';
+  if (lang.includes('francês') || lang.includes('français') || lang.includes('french')) return 'fr';
+  return 'en'; // default fallback
+};
+
 export default function App() {
   // Selected Target Learning Language
   const [selectedLanguageId, setSelectedLanguageId] = useState<string>(() => {
@@ -1417,6 +1427,56 @@ export default function App() {
             )}
           </div>
 
+          {/* MusicPlayerPanel for Mobile/Tablet Inline view (directly below the AI Assistant) */}
+          {isMusicMode && (
+            <div className={`lg:hidden w-full max-w-xl mx-auto animate-slide-up ${isMusicPlayerMinimized ? 'hidden' : 'block'}`}>
+              <MusicPlayerPanel
+                songs={musicSongs}
+                activeSongId={activeSongId}
+                activeSentenceIndex={activeMusicSentenceIndex}
+                completedSentenceIndices={completedMusicSentenceIndices}
+                onSelectSong={(songId) => {
+                  playTick();
+                  setActiveSongId(songId);
+                  setActiveMusicSentenceIndex(0);
+                  handleClearSequence();
+                  const selectedSong = musicSongs.find(s => s.id === songId);
+                  if (selectedSong) {
+                    const targetLangId = getLanguageIdFromSong(selectedSong.language);
+                    handleSelectLanguage(targetLangId);
+                  }
+                }}
+                onSelectSentence={(idx) => {
+                  playTick();
+                  setActiveMusicSentenceIndex(idx);
+                  handleClearSequence();
+                }}
+                onAddCustomSong={(newSong) => {
+                  playTick();
+                  const updated = [...musicSongs, newSong];
+                  setMusicSongs(updated);
+                  const customOnly = updated.filter(s => s.id.startsWith('song-custom-'));
+                  localStorage.setItem('hanzi_dial_custom_songs', JSON.stringify(customOnly));
+                  setActiveSongId(newSong.id);
+                  setActiveMusicSentenceIndex(0);
+                  handleClearSequence();
+                }}
+                onExitMusic={() => {
+                  playTick();
+                  setIsMusicMode(false);
+                  handleClearSequence();
+                }}
+                onMinimizeMusic={() => {
+                  playTick();
+                  setIsMusicPlayerMinimized(true);
+                }}
+                onSpeakSentence={(text) => {
+                  handleSpeakText(text);
+                }}
+              />
+            </div>
+          )}
+
           {/* Interactive Floating Words Arena Canvas */}
           <FloatingWordCanvas
             sentences={activeSentences}
@@ -1541,56 +1601,11 @@ export default function App() {
             );
           })()}
 
-          {/* MusicPlayerPanel for Mobile/Tablet Inline view (No backdrop cover overlay) */}
-          {isMusicMode && !isMusicPlayerMinimized && (
-            <div className="lg:hidden w-full max-w-xl mx-auto animate-slide-up">
-              <MusicPlayerPanel
-                songs={musicSongs}
-                activeSongId={activeSongId}
-                activeSentenceIndex={activeMusicSentenceIndex}
-                completedSentenceIndices={completedMusicSentenceIndices}
-                onSelectSong={(songId) => {
-                  playTick();
-                  setActiveSongId(songId);
-                  setActiveMusicSentenceIndex(0);
-                  handleClearSequence();
-                }}
-                onSelectSentence={(idx) => {
-                  playTick();
-                  setActiveMusicSentenceIndex(idx);
-                  handleClearSequence();
-                }}
-                onAddCustomSong={(newSong) => {
-                  playTick();
-                  const updated = [...musicSongs, newSong];
-                  setMusicSongs(updated);
-                  const customOnly = updated.filter(s => s.id.startsWith('song-custom-'));
-                  localStorage.setItem('hanzi_dial_custom_songs', JSON.stringify(customOnly));
-                  setActiveSongId(newSong.id);
-                  setActiveMusicSentenceIndex(0);
-                  handleClearSequence();
-                }}
-                onExitMusic={() => {
-                  playTick();
-                  setIsMusicMode(false);
-                  handleClearSequence();
-                }}
-                onMinimizeMusic={() => {
-                  playTick();
-                  setIsMusicPlayerMinimized(true);
-                }}
-                onSpeakSentence={(text) => {
-                  handleSpeakText(text);
-                }}
-              />
-            </div>
-          )}
-
         </div>
 
         {/* Right Side: Persistent Library Sidebar (Desktop) or Sliding Drawer (Mobile) / Ebook / Music Panel */}
-        {isMusicMode && !isMusicPlayerMinimized ? (
-          <div className="hidden lg:block w-[400px] flex-shrink-0 z-30">
+        {isMusicMode && (
+          <div className={`hidden lg:block w-[400px] flex-shrink-0 z-30 ${isMusicPlayerMinimized ? 'hidden' : 'block'}`}>
             <MusicPlayerPanel
               songs={musicSongs}
               activeSongId={activeSongId}
@@ -1601,6 +1616,11 @@ export default function App() {
                 setActiveSongId(songId);
                 setActiveMusicSentenceIndex(0);
                 handleClearSequence();
+                const selectedSong = musicSongs.find(s => s.id === songId);
+                if (selectedSong) {
+                  const targetLangId = getLanguageIdFromSong(selectedSong.language);
+                  handleSelectLanguage(targetLangId);
+                }
               }}
               onSelectSentence={(idx) => {
                 playTick();
@@ -1631,7 +1651,8 @@ export default function App() {
               }}
             />
           </div>
-        ) : isEbookMode ? (
+        )}
+        {!isMusicMode && isEbookMode && (
           <EbookReaderPanel
             ebookName={ebookName}
             sentences={ebookSentences}
@@ -1650,7 +1671,9 @@ export default function App() {
             isHintEnabled={isHintEnabled}
             isMonochrome={isMonochrome}
           />
-        ) : (
+        )}
+
+        {!isMusicMode && !isEbookMode && (
           <div 
             className={`
               lg:block flex-shrink-0 z-40
