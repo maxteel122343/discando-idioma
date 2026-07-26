@@ -463,6 +463,18 @@ export default function App() {
   });
 
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
+  const [dialErrorsCount, setDialErrorsCount] = useState<number>(() => {
+    const saved = localStorage.getItem('hanzi_dial_dial_errors_count');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  const handleDialError = () => {
+    setDialErrorsCount(prev => {
+      const next = prev + 1;
+      localStorage.setItem('hanzi_dial_dial_errors_count', next.toString());
+      return next;
+    });
+  };
 
   const [isMusicPlayerMinimized, setIsMusicPlayerMinimized] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -1478,38 +1490,143 @@ export default function App() {
             </div>
           )}
 
-          {/* Interactive Floating Words Arena Canvas */}
-          <FloatingWordCanvas
-            sentences={activeSentences}
-            completedSentenceIds={completedSentenceIds}
-            activeSequence={activeSequence}
-            activeWordIds={activeWordIds}
-            currentCategory={currentCategory}
-            selectedDifficulty={selectedDifficulty}
-            onSentenceCompleted={handleSentenceCompleted}
-            onSequenceUpdate={handleSequenceUpdate}
-            onClearSequence={handleClearSequence}
-            isReviewMode={isReviewMode}
-            reviewSentenceId={reviewSentenceId}
-            onExitReview={handleExitReview}
-            onNextReviewSentence={handleNextReviewSentence}
-            cardSpeed={cardSpeed}
-            cardMovementType={cardMovementType}
-            isEbookMode={isEbookMode}
-            activeEbookSentence={ebookSentences[activeEbookIndex] || null}
-            ebookSentences={ebookSentences}
-            isMusicMode={isMusicMode}
-            activeMusicSentence={(musicSongs.find(s => s.id === activeSongId) || musicSongs[0])?.sentences[activeMusicSentenceIndex] || null}
-            phoneticLabel={currentLanguage.phoneticLabel}
-            isHintEnabled={isHintEnabled}
-            onToggleHint={() => setIsHintEnabled(prev => !prev)}
-            isMonochrome={isMonochrome}
-            onToggleMonochrome={() => setIsMonochrome(prev => !prev)}
-            currentLanguage={currentLanguage}
-            allLanguages={LANGUAGES}
-            onSelectLanguage={(id) => handleSelectLanguage(id)}
-            onTriggerVoiceGuidance={() => triggerTutorGuidance()}
-          />
+          {/* Conditional Rendering: Home Dashboard vs Interactive Canvas */}
+          {!isMusicMode && !isEbookMode && !isReviewMode ? (
+            /* Home Dashboard Summary */
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-xl space-y-6 w-full flex-1 flex flex-col justify-center animate-fade-in">
+              <div className="text-center space-y-2 max-w-md mx-auto">
+                <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-500 via-pink-500 to-orange-500 flex items-center justify-center text-white text-3xl shadow-lg shadow-indigo-500/20">
+                  👋
+                </div>
+                <h2 className="text-xl font-black text-slate-850 dark:text-slate-100 tracking-tight">
+                  Bem-vindo, {userName || 'Estudante'}!
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Escolha um modo de aprendizado abaixo para iniciar sua discagem e treinar o idioma de forma ativa!
+                </p>
+              </div>
+
+              {/* Stats Grid Dashboard */}
+              <div className="grid grid-cols-2 gap-4 sm:max-w-xl sm:mx-auto w-full">
+                {/* Level / XP */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
+                  <span className="text-xl">🏆</span>
+                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Nível Atual</div>
+                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">Level {Math.floor(totalXp / 100) + 1}</div>
+                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">{totalXp % 100}/100 XP</div>
+                </div>
+
+                {/* Completed Sentences */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
+                  <span className="text-xl">📝</span>
+                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Frases Concluídas</div>
+                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">{completedSentenceIds.length} Frases</div>
+                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Treinos Gerais</div>
+                </div>
+
+                {/* Completed Songs */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
+                  <span className="text-xl">🎵</span>
+                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Músicas Concluídas</div>
+                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">
+                    {(() => {
+                      const completedSongs = musicSongs.filter(song => {
+                        const saved = localStorage.getItem(`hanzi_dial_completed_music_indices_${song.id}`);
+                        const completedIdxs: number[] = saved ? JSON.parse(saved) : [];
+                        return song.sentences.length > 0 && completedIdxs.length === song.sentences.length;
+                      });
+                      return completedSongs.length;
+                    })()} Músicas
+                  </div>
+                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Playlist Completa</div>
+                </div>
+
+                {/* Dial Errors */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
+                  <span className="text-xl">⚠️</span>
+                  <div className="text-[10px] font-mono font-black text-red-400 dark:text-red-500 uppercase tracking-widest">Erros de Discagem</div>
+                  <div className="text-lg font-black text-red-600 dark:text-red-450">{dialErrorsCount} Erros</div>
+                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Erros Detectados</div>
+                </div>
+              </div>
+
+              {/* Mode Selectors Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:max-w-xl sm:mx-auto w-full pt-2">
+                {/* Mode 1: Music Player */}
+                <button
+                  onClick={() => {
+                    playTick();
+                    setIsMusicMode(true);
+                    setIsEbookMode(false);
+                    setIsReviewMode(false);
+                  }}
+                  className="group relative flex flex-col items-start p-5 rounded-2xl bg-gradient-to-br from-rose-500 via-pink-600 to-indigo-600 hover:brightness-105 active:scale-98 transition-all text-white text-left shadow-lg border border-pink-400/20 cursor-pointer overflow-hidden"
+                >
+                  <div className="absolute right-3 top-3 opacity-20 group-hover:scale-110 transition-transform duration-300">
+                    <Music size={48} />
+                  </div>
+                  <span className="p-2 rounded-xl bg-white/20 text-white mb-3 text-sm">🎵</span>
+                  <h3 className="text-sm font-black tracking-tight uppercase">Modo Música & Playlist</h3>
+                  <p className="text-[10.5px] text-white/80 font-medium mt-1 leading-snug">
+                    Aprenda escutando e discando as letras das suas músicas favoritas.
+                  </p>
+                </button>
+
+                {/* Mode 2: Ebook Reader */}
+                <button
+                  onClick={() => {
+                    playTick();
+                    setIsEbookMode(true);
+                    setIsMusicMode(false);
+                    setIsReviewMode(false);
+                  }}
+                  className="group relative flex flex-col items-start p-5 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-600 to-teal-500 hover:brightness-105 active:scale-98 transition-all text-white text-left shadow-lg border border-blue-400/20 cursor-pointer overflow-hidden"
+                >
+                  <div className="absolute right-3 top-3 opacity-20 group-hover:scale-110 transition-transform duration-300">
+                    <BookOpen size={48} />
+                  </div>
+                  <span className="p-2 rounded-xl bg-white/20 text-white mb-3 text-sm">📖</span>
+                  <h3 className="text-sm font-black tracking-tight uppercase">Modo Leitor Ebook</h3>
+                  <p className="text-[10.5px] text-white/80 font-medium mt-1 leading-snug">
+                    Importe ou leia clássicos da literatura discando frase por frase.
+                  </p>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <FloatingWordCanvas
+              sentences={activeSentences}
+              completedSentenceIds={completedSentenceIds}
+              activeSequence={activeSequence}
+              activeWordIds={activeWordIds}
+              currentCategory={currentCategory}
+              selectedDifficulty={selectedDifficulty}
+              onSentenceCompleted={handleSentenceCompleted}
+              onSequenceUpdate={handleSequenceUpdate}
+              onClearSequence={handleClearSequence}
+              onDialError={handleDialError}
+              isReviewMode={isReviewMode}
+              reviewSentenceId={reviewSentenceId}
+              onExitReview={handleExitReview}
+              onNextReviewSentence={handleNextReviewSentence}
+              cardSpeed={cardSpeed}
+              cardMovementType={cardMovementType}
+              isEbookMode={isEbookMode}
+              activeEbookSentence={ebookSentences[activeEbookIndex] || null}
+              ebookSentences={ebookSentences}
+              isMusicMode={isMusicMode}
+              activeMusicSentence={(musicSongs.find(s => s.id === activeSongId) || musicSongs[0])?.sentences[activeMusicSentenceIndex] || null}
+              phoneticLabel={currentLanguage.phoneticLabel}
+              isHintEnabled={isHintEnabled}
+              onToggleHint={() => setIsHintEnabled(prev => !prev)}
+              isMonochrome={isMonochrome}
+              onToggleMonochrome={() => setIsMonochrome(prev => !prev)}
+              currentLanguage={currentLanguage}
+              allLanguages={LANGUAGES}
+              onSelectLanguage={(id) => handleSelectLanguage(id)}
+              onTriggerVoiceGuidance={() => triggerTutorGuidance()}
+            />
+          )}
 
           {/* Active Song Lyrics (Legendas) below the Dialer Canvas */}
           {isMusicMode && (() => {

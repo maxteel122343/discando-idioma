@@ -299,7 +299,6 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
       <div className="space-y-1.5 select-none">
         <div className="flex items-center justify-between text-[11px] font-mono font-black text-slate-400 uppercase tracking-wider px-1">
           <span>Playlist de Músicas</span>
-          <span>{songs.length} Músicas no Repositório</span>
         </div>
 
         <div
@@ -413,43 +412,7 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
           </button>
         </div>
 
-        {/* Repetição e Reforço Auditivo (Sentence Loop vs Continuous Toggle) */}
-        <div className="bg-white/10 dark:bg-black/30 p-2.5 rounded-2xl border border-white/10 flex items-center justify-between gap-2 relative z-10">
-          <div className="flex items-center gap-2">
-            <span className={`p-1.5 rounded-xl ${isLoopSentenceMode ? "bg-amber-400 text-slate-950 font-black" : "bg-indigo-600/50 text-indigo-200"}`}>
-              {isLoopSentenceMode ? <Repeat size={14} /> : <Headphones size={14} />}
-            </span>
-            <div>
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>{isLoopSentenceMode ? "Loop por Frase (Reforço)" : "Música Toda Sem Parar"}</span>
-                {isLoopSentenceMode && (
-                  <span className="text-[9px] bg-amber-400 text-slate-950 font-mono font-black px-1.5 py-0.2 rounded-full">
-                    REPETIÇÃO ATIVA
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-slate-300 font-medium leading-snug">
-                {isLoopSentenceMode
-                  ? "Repete o áudio da linha atual continuamente enquanto você disca!"
-                  : "Toca a música inteira continuamente no fundo."}
-              </p>
-            </div>
-          </div>
 
-          <button
-            onClick={() => {
-              playTick();
-              setIsLoopSentenceMode(!isLoopSentenceMode);
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 border ${
-              isLoopSentenceMode
-                ? "bg-amber-400 text-slate-950 border-amber-300 shadow-md"
-                : "bg-white/10 hover:bg-white/20 text-white border-white/20"
-            }`}
-          >
-            {isLoopSentenceMode ? "🔂 Trecho" : "🔁 Música"}
-          </button>
-        </div>
 
         {/* Volume Bar & Sentence Counter */}
         <div className="flex items-center justify-between text-xs text-indigo-200 font-medium pt-1 border-t border-white/10">

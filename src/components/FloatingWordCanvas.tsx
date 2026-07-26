@@ -15,6 +15,7 @@ interface FloatingWordCanvasProps {
   onSentenceCompleted: (sentence: Sentence) => void;
   onSequenceUpdate: (seq: string[], wordIds: string[]) => void;
   onClearSequence: () => void;
+  onDialError?: () => void;
   isReviewMode: boolean;
   reviewSentenceId: string | null;
   onExitReview: () => void;
@@ -49,6 +50,7 @@ export default function FloatingWordCanvas({
   onSentenceCompleted,
   onSequenceUpdate,
   onClearSequence,
+  onDialError,
   isReviewMode,
   reviewSentenceId,
   onExitReview,
@@ -358,6 +360,7 @@ export default function FloatingWordCanvas({
       // Incorrect path, trigger failure feedback
       setGlowState('error');
       playError();
+      if (onDialError) onDialError();
       
       // Auto-clear after a short delay so the user can try again
       setTimeout(() => {
