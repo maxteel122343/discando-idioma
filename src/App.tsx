@@ -6,6 +6,7 @@ import { MusicPlayerPanel } from './components/MusicPlayerPanel';
 import { PoetryPlayerPanel } from './components/PoetryPlayerPanel';
 import InstructionsModal from './components/InstructionsModal';
 import AIVoiceAssistantCard from './components/AIVoiceAssistantCard';
+import MusicVitrine from './components/MusicVitrine';
 import { SENTENCES } from './data/sentences';
 import { LANGUAGES, LanguageConfig } from './data/languages';
 import { PRESET_SONGS, SongTrack } from './data/musicPlaylist';
@@ -1410,72 +1411,30 @@ export default function App() {
                 targetLanguageName={currentLanguage.name}
               />
             )}
-            {isMusicMode && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    playTick();
-                    setIsMusicPlayerMinimized(!isMusicPlayerMinimized);
-                  }}
-                  className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 via-pink-600 to-indigo-600 text-white shadow-xl border border-pink-400/40 hover:brightness-110 active:scale-95 transition-all cursor-pointer shrink-0 z-20"
-                  title={isMusicPlayerMinimized ? 'Expandir Playlist' : 'Minimizar Playlist'}
-                >
-                  <Music size={20} className="text-white" />
-                </button>
-              </div>
-            )}
+            {/* Music minimize button removed — vitrine always visible above dial */}
           </div>
 
-          {/* MusicPlayerPanel for Mobile/Tablet Inline view (directly below the AI Assistant) */}
+          {/* MusicVitrine — compact horizontal strip above dialer */}
           {isMusicMode && (
-            <div className={`lg:hidden w-full max-w-xl mx-auto animate-slide-up ${isMusicPlayerMinimized ? 'hidden' : 'block'}`}>
-              <MusicPlayerPanel
-                songs={musicSongs}
-                activeSongId={activeSongId}
-                activeSentenceIndex={activeMusicSentenceIndex}
-                completedSentenceIndices={completedMusicSentenceIndices}
-                isPlaying={isMusicPlaying}
-                onTogglePlay={() => setIsMusicPlaying(!isMusicPlaying)}
-                onSelectSong={(songId) => {
-                  playTick();
-                  setActiveSongId(songId);
-                  setActiveMusicSentenceIndex(0);
-                  handleClearSequence();
-                  const selectedSong = musicSongs.find(s => s.id === songId);
-                  if (selectedSong) {
-                    const targetLangId = getLanguageIdFromSong(selectedSong.language);
-                    handleSelectLanguage(targetLangId);
-                  }
-                }}
-                onSelectSentence={(idx) => {
-                  playTick();
-                  setActiveMusicSentenceIndex(idx);
-                  handleClearSequence();
-                }}
-                onAddCustomSong={(newSong) => {
-                  playTick();
-                  const updated = [...musicSongs, newSong];
-                  setMusicSongs(updated);
-                  const customOnly = updated.filter(s => s.id.startsWith('song-custom-'));
-                  localStorage.setItem('hanzi_dial_custom_songs', JSON.stringify(customOnly));
-                  setActiveSongId(newSong.id);
-                  setActiveMusicSentenceIndex(0);
-                  handleClearSequence();
-                }}
-                onExitMusic={() => {
-                  playTick();
-                  setIsMusicMode(false);
-                  handleClearSequence();
-                }}
-                onMinimizeMusic={() => {
-                  playTick();
-                  setIsMusicPlayerMinimized(true);
-                }}
-                onSpeakSentence={(text) => {
-                  handleSpeakText(text);
-                }}
-              />
-            </div>
+            <MusicVitrine
+              songs={musicSongs}
+              activeSongId={activeSongId}
+              onSelectSong={(songId) => {
+                playTick();
+                setActiveSongId(songId);
+                setActiveMusicSentenceIndex(0);
+                handleClearSequence();
+                const selectedSong = musicSongs.find(s => s.id === songId);
+                if (selectedSong) {
+                  const targetLangId = getLanguageIdFromSong(selectedSong.language);
+                  handleSelectLanguage(targetLangId);
+                }
+              }}
+              onAddSong={() => {
+                // Trigger the upload modal inside the desktop MusicPlayerPanel via a flag
+                setIsMusicPlayerMinimized(false);
+              }}
+            />
           )}
 
           {/* Conditional Rendering: Home Dashboard vs Interactive Canvas */}
