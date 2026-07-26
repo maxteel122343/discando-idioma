@@ -999,6 +999,12 @@ export default function App() {
 
       }
 
+      // Sync to general home dashboard completions
+      if (!completedSentenceIds.includes(sentence.id)) {
+        const updated = [...completedSentenceIds, sentence.id];
+        setCompletedSentenceIds(updated);
+      }
+
       setTotalXp(currentXp);
       const newLevel = Math.floor(currentXp / 100) + 1;
 

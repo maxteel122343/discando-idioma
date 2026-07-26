@@ -60,6 +60,34 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
   const [newAudioFile, setNewAudioFile] = useState<File | null>(null);
   const [newAudioUrl, setNewAudioUrl] = useState<string>('');
 
+  // 30s countdown timer for active sentence
+  const [timeLeft, setTimeLeft] = useState<number>(30);
+
+  useEffect(() => {
+    // Reset timer on song or sentence change
+    setTimeLeft(30);
+  }, [activeSongId, activeSentenceIndex]);
+
+  useEffect(() => {
+    if (!isPlaying || isLoopSentenceMode) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Timeout reached, auto-advance sentence
+          const nextIdx = activeSentenceIndex + 1;
+          if (nextIdx < sentences.length) {
+            onSelectSentence(nextIdx);
+          }
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isPlaying, isLoopSentenceMode, activeSentenceIndex, sentences.length]);
+
   // Autoplay on song change
   useEffect(() => {
     if (propOnTogglePlay) {
@@ -422,6 +450,24 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
             {isPlaying ? <Pause size={22} className="fill-slate-950" /> : <Play size={22} className="fill-slate-950 ml-0.5" />}
           </button>
         </div>
+
+        {/* 30-Second Countdown Visual Progress Bar */}
+        {!isLoopSentenceMode && (
+          <div className="space-y-1 pt-1">
+            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-indigo-300">
+              <span className="flex items-center gap-1">
+                ⏱️ Avanço Automático: {timeLeft}s
+              </span>
+              <span>{Math.round((timeLeft / 30) * 100)}% restante</span>
+            </div>
+            <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-amber-400 rounded-full transition-all duration-1000 ease-linear" 
+                style={{ width: `${(timeLeft / 30) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
 
 
 
