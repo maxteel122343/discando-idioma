@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Sentence, joinSentence } from '../types';
+import { Sentence } from '../types';
 
 interface LeafWord {
   id: string;
   text: string;
-  startX: number; // vw percentage
-  startY: number; // vh percentage
+  startX: number; // % of container width (right side: 60-100%)
+  startY: number; // % of container height
   delay: number;
   duration: number;
   size: number;
   opacity: number;
-  rotation: number;
 }
 
 interface WordRainOverlayProps {
@@ -21,9 +19,9 @@ interface WordRainOverlayProps {
 }
 
 /**
- * Renders falling-leaf word particles over the screen when lyrics advance.
- * Words drift from the right side of the screen toward the orbit area.
- * Rendered via Portal so it sits above everything.
+ * Renders falling-leaf word particles INSIDE the canvas container (no portal).
+ * Parent must have position:relative and overflow:hidden.
+ * Words drift across the canvas area only — they cannot escape outside.
  */
 export default function WordRainOverlay({ sentence, trigger, isActive }: WordRainOverlayProps) {
   const [leaves, setLeaves] = useState<LeafWord[]>([]);
@@ -32,28 +30,26 @@ export default function WordRainOverlay({ sentence, trigger, isActive }: WordRai
   useEffect(() => {
     if (!isActive || !sentence || sentence.characters.length === 0) return;
 
-    // Clear old timeouts
     timeoutRefs.current.forEach(t => clearTimeout(t));
     timeoutRefs.current = [];
 
-    // Spawn leaf particles for each word in the sentence
+    // Spawn particles for each character — start from right half of canvas
     const newLeaves: LeafWord[] = sentence.characters.map((char, i) => ({
       id: `${trigger}-${i}-${char}`,
       text: char,
-      // Start from right side (70-100vw), drift across
-      startX: 72 + Math.random() * 20,
-      startY: 5 + Math.random() * 50,
-      delay: i * 0.18 + Math.random() * 0.3,
+      // Start from right portion of canvas (55-95% of container width)
+      startX: 55 + Math.random() * 38,
+      // Spread vertically across canvas (5-70% height)
+      startY: 5 + Math.random() * 65,
+      delay: i * 0.18 + Math.random() * 0.25,
       duration: 1.2 + Math.random() * 0.8,
       size: 14 + Math.floor(Math.random() * 12),
-      opacity: 0.55 + Math.random() * 0.35,
-      rotation: -20 + Math.random() * 40,
+      opacity: 0.5 + Math.random() * 0.35,
     }));
 
     setLeaves(prev => [...prev, ...newLeaves]);
 
-    // Remove leaves after their animations complete
-    const maxDuration = Math.max(...newLeaves.map(l => (l.delay + l.duration) * 1000)) + 200;
+    const maxDuration = Math.max(...newLeaves.map(l => (l.delay + l.duration) * 1000)) + 300;
     const cleanup = setTimeout(() => {
       setLeaves(prev => prev.filter(l => !newLeaves.some(nl => nl.id === l.id)));
     }, maxDuration);
@@ -66,12 +62,13 @@ export default function WordRainOverlay({ sentence, trigger, isActive }: WordRai
 
   if (!isActive || leaves.length === 0) return null;
 
-  return createPortal(
+  return (
+    // Absolutely positioned inside the canvas wrapper — overflow:hidden clips them
     <div
       style={{
-        position: 'fixed',
+        position: 'absolute',
         inset: 0,
-        zIndex: 30,
+        zIndex: 20,
         pointerEvents: 'none',
         overflow: 'hidden',
       }}
@@ -81,22 +78,20 @@ export default function WordRainOverlay({ sentence, trigger, isActive }: WordRai
           key={leaf.id}
           style={{
             position: 'absolute',
-            left: `${leaf.startX}vw`,
-            top: `${leaf.startY}vh`,
+            left: `${leaf.startX}%`,
+            top: `${leaf.startY}%`,
             fontSize: `${leaf.size}px`,
             fontWeight: 900,
-            color: 'rgba(129, 140, 248, ' + leaf.opacity + ')',
+            color: `rgba(129, 140, 248, ${leaf.opacity})`,
             textShadow: '0 0 12px rgba(99,102,241,0.6)',
             animation: `leaf-fall ${leaf.duration}s cubic-bezier(0.25,0.46,0.45,0.94) ${leaf.delay}s both`,
             userSelect: 'none',
             willChange: 'transform, opacity',
-            fontFamily: 'var(--font-sans)',
           }}
         >
           {leaf.text}
         </div>
       ))}
-    </div>,
-    document.body
+    </div>
   );
 }

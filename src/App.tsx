@@ -1561,7 +1561,7 @@ export default function App() {
               </div>
             </div>
           ) : (
-            /* Canvas wrapper — expands in music mode when isExpandedCanvas is active */
+            /* Canvas wrapper — always overflow:hidden so WordRain stays clipped inside */
             <div className={`relative w-full flex flex-col transition-all duration-500 rounded-2xl overflow-hidden ${
               isExpandedCanvas && isMusicMode ? 'ring-2 ring-indigo-500/30 shadow-2xl shadow-indigo-500/10' : ''
             }`}>
@@ -1598,6 +1598,19 @@ export default function App() {
                 onTriggerVoiceGuidance={() => triggerTutorGuidance()}
               />
 
+              {/* WordRainOverlay — INSIDE the canvas so overflow:hidden clips it */}
+              {isMusicMode && (() => {
+                const activeSong = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+                const activeSentence = activeSong?.sentences[activeMusicSentenceIndex] || null;
+                return (
+                  <WordRainOverlay
+                    sentence={activeSentence}
+                    trigger={wordRainTrigger}
+                    isActive={isMusicMode && isMusicPlaying}
+                  />
+                );
+              })()}
+
               {/* LyricsStrip — Spotify-style, shown below dialer in expanded music mode */}
               {isExpandedCanvas && isMusicMode && (() => {
                 const song = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
@@ -1617,21 +1630,6 @@ export default function App() {
             </div>
           )}
 
-
-          {/* ── Word Rain Overlay (portal, fullscreen music mode) ────────────── */}
-          {isMusicMode && (() => {
-            const activeSong = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
-            const activeSentence = activeSong?.sentences[activeMusicSentenceIndex] || null;
-            return (
-              <WordRainOverlay
-                sentence={activeSentence}
-                trigger={wordRainTrigger}
-                isActive={isMusicMode && isMusicPlaying}
-              />
-            );
-          })()}
-
-          {/* Active Song Lyrics (Legendas) below the Dialer Canvas */}
           {isMusicMode && (() => {
             const currentSong = musicSongs.find((s) => s.id === activeSongId) || musicSongs[0];
             const sentences = currentSong?.sentences || [];
