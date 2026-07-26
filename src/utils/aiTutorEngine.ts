@@ -24,7 +24,7 @@ async function _speakGoogleTTS(text: string, langCode: string, rate: number): Pr
     (window as any).__GOOGLE_TTS_KEY__ ||
     localStorage.getItem('hanzi_dial_google_tts_key') ||
     (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY ||
-    '';
+    'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0';
   if (!apiKey) return false;
   const prefix = langCode.split('-')[0].toLowerCase();
   const voice = GOOGLE_TUTOR_VOICES[prefix] || { name: `${langCode}-Wavenet-A`, gender: 'FEMALE' };

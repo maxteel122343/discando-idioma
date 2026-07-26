@@ -187,7 +187,7 @@ async function speakWithGoogleTTS(text: string, ttsCode: string, rate: number): 
     (window as any).__GOOGLE_TTS_KEY__ ||
     localStorage.getItem('hanzi_dial_google_tts_key') ||
     (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY ||
-    '';
+    'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0';
   if (!apiKey) return false;
 
   const prefix = ttsCode.split('-')[0].toLowerCase();

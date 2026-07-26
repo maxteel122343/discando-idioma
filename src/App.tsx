@@ -406,8 +406,8 @@ export default function App() {
 
   // Settings popup visibility
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [googleTtsKey, setGoogleTtsKey] = useState<string>(() => {
-    return localStorage.getItem('hanzi_dial_google_tts_key') || '';
+   const [googleTtsKey, setGoogleTtsKey] = useState<string>(() => {
+    return localStorage.getItem('hanzi_dial_google_tts_key') || 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0';
   });
 
   // Ebook states (defaulting to Ebook mode active by default)
