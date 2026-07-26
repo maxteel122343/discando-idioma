@@ -42,6 +42,8 @@ export default function CelebrationToast({
         justifyContent: 'center',
         padding: '16px',
         pointerEvents: 'none',
+        backgroundColor: 'rgba(0, 0, 0, 0.4)', // dark backdrop overlay
+        backdropFilter: 'blur(3px)',
       }}
     >
       <div
