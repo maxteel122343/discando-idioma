@@ -8,7 +8,7 @@ import InstructionsModal from './components/InstructionsModal';
 import AIVoiceAssistantCard from './components/AIVoiceAssistantCard';
 import MusicVitrine from './components/MusicVitrine';
 import CelebrationToast from './components/CelebrationToast';
-import LyricsKaraokePanel from './components/LyricsKaraokePanel';
+
 import LyricsStrip from './components/LyricsStrip';
 import WordRainOverlay from './components/WordRainOverlay';
 import { SENTENCES } from './data/sentences';
@@ -49,8 +49,6 @@ import {
   Hand,
   CheckCircle,
   AlertTriangle,
-  Maximize2,
-  Minimize2,
   Expand,
   Shrink
 } from 'lucide-react';
@@ -1862,41 +1860,6 @@ export default function App() {
 
       </main>
 
-      {/* ── Fullscreen Karaoke Lyrics Overlay ─────────────────────────────── */}
-      {isFullscreen && isMusicMode && (() => {
-        const currentSong = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
-        const sentences = currentSong?.sentences || [];
-        return (
-          <>
-            {/* Exit fullscreen shortcut button */}
-            <button
-              onClick={handleToggleFullscreen}
-              className="fixed top-4 right-4 z-[200] p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/80 hover:text-white hover:bg-black/60 transition-all cursor-pointer shadow-xl"
-              title="Sair da tela cheia"
-            >
-              <Minimize2 size={16} />
-            </button>
-
-            {/* Lyrics panel — right 32%, transparent float */}
-            <div
-              className="fixed right-0 top-0 bottom-0 z-[100] w-[32vw] max-w-xs pointer-events-auto"
-              style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 80%, transparent 100%)' }}
-            >
-              <LyricsKaraokePanel
-                sentences={sentences}
-                activeIndex={activeMusicSentenceIndex}
-                onSelectIndex={(idx) => {
-                  setActiveMusicSentenceIndex(idx);
-                  setWordRainTrigger(t => t + 1);
-                }}
-                songTitle={currentSong?.title || ''}
-                songArtist={currentSong?.artist || ''}
-                completedIndices={completedMusicSentenceIndices}
-              />
-            </div>
-          </>
-        );
-      })()}
 
       {/* Celebration Toast - rendered via React Portal to avoid parent transform clipping */}
       <CelebrationToast
