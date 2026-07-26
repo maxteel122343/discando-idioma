@@ -45,14 +45,36 @@ async function _speakGoogleTTS(text: string, langCode: string, rate: number): Pr
     const data = await resp.json();
     if (!data.audioContent) return false;
     if (_googleTtsAudio) _googleTtsAudio.pause();
-    _googleTtsAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+    
+    // Decode base64 to raw binary bytes to build a Blob object (safest for mobile browser audio tags)
+    const binaryString = window.atob(data.audioContent);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'audio/mp3' });
+    const audioUrl = URL.createObjectURL(blob);
+
+    _googleTtsAudio = new Audio(audioUrl);
     await new Promise<void>((res) => {
-      _googleTtsAudio!.onended = () => res();
-      _googleTtsAudio!.onerror = () => res();
-      _googleTtsAudio!.play().catch(() => res());
+      _googleTtsAudio!.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        res();
+      };
+      _googleTtsAudio!.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        res();
+      };
+      _googleTtsAudio!.play().catch((err) => {
+        console.warn('Google Cloud TTS play blocked on mobile', err);
+        URL.revokeObjectURL(audioUrl);
+        res();
+      });
     });
     return true;
-  } catch {
+  } catch (err) {
+    console.error('Google Cloud TTS request failed on mobile:', err);
     return false;
   }
 }

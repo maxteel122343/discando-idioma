@@ -210,13 +210,29 @@ async function speakWithGoogleTTS(text: string, ttsCode: string, rate: number): 
     const data = await resp.json();
     if (!data.audioContent) return false;
 
-    // Play the returned base64 MP3
-    if (googleTtsAudio) { googleTtsAudio.pause(); }
-    googleTtsAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+    // Decode base64 to raw binary bytes to build a Blob object (safest for mobile browser audio tags)
+    const binaryString = window.atob(data.audioContent);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'audio/mp3' });
+    const audioUrl = URL.createObjectURL(blob);
+
+    if (googleTtsAudio) {
+      googleTtsAudio.pause();
+    }
+    googleTtsAudio = new Audio(audioUrl);
+    
+    // Revoke object URL after playing or when errors occur to save memory
+    googleTtsAudio.onended = () => URL.revokeObjectURL(audioUrl);
+    googleTtsAudio.onerror = () => URL.revokeObjectURL(audioUrl);
+    
     await googleTtsAudio.play();
     return true;
   } catch (e) {
-    console.warn('Google TTS failed, falling back to Web Speech API', e);
+    console.warn('Google TTS failed on mobile, falling back to Web Speech API', e);
     return false;
   }
 }
