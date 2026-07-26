@@ -266,16 +266,6 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              playTick();
-              setIsUploadModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xs shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-          >
-            <Plus size={14} />
-            <span>Nova Música</span>
-          </button>
           {(onMinimizeMusic || onExitMusic) && (
             <button
               onClick={() => { 
@@ -370,6 +360,22 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
               </div>
             );
           })}
+
+          {/* Nova Música Custom Card inside playlist list */}
+          <div
+            onClick={() => {
+              playTick();
+              setIsUploadModalOpen(true);
+            }}
+            className="flex-shrink-0 w-36 sm:w-40 p-2.5 rounded-2xl border border-dashed border-indigo-400/60 dark:border-indigo-800/60 bg-indigo-50/10 dark:bg-indigo-950/10 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 hover:border-indigo-500 hover:bg-indigo-500/5 transition-all cursor-pointer flex flex-col justify-center items-center gap-1.5 h-24 shadow-sm text-center select-none"
+          >
+            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-650 dark:text-indigo-400 font-black text-lg">
+              +
+            </div>
+            <span className="text-[10px] font-black text-indigo-650 dark:text-indigo-400 uppercase tracking-wider">
+              Nova Música
+            </span>
+          </div>
         </div>
       </div>
 
