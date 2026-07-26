@@ -40,7 +40,10 @@ import {
   Lightbulb,
   Play,
   Pause,
-  SkipForward
+  SkipForward,
+  Hand,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 
 const PRELOADED_BOOKS: Record<string, { name: string; sentences: Sentence[] }> = {
@@ -1108,7 +1111,7 @@ export default function App() {
                 Telefone de Ideogramas
               </h1>
               <p className="text-[10px] font-mono font-bold tracking-wider text-indigo-600 dark:text-indigo-400 uppercase">
-                Hanzi Rotary Dialer • 汉语拨号器
+                Hanzi Rotary Dialer
               </p>
             </div>
           </div>
@@ -1495,11 +1498,11 @@ export default function App() {
             /* Home Dashboard Summary */
             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-xl space-y-6 w-full flex-1 flex flex-col justify-center animate-fade-in">
               <div className="text-center space-y-2 max-w-md mx-auto">
-                <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-500 via-pink-500 to-orange-500 flex items-center justify-center text-white text-3xl shadow-lg shadow-indigo-500/20">
-                  👋
+                <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-500 via-pink-500 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                  <Hand size={28} />
                 </div>
                 <h2 className="text-xl font-black text-slate-850 dark:text-slate-100 tracking-tight">
-                  Bem-vindo, {userName || 'Estudante'}!
+                  Bem-vindo!
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   Escolha um modo de aprendizado abaixo para iniciar sua discagem e treinar o idioma de forma ativa!
@@ -1510,7 +1513,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4 sm:max-w-xl sm:mx-auto w-full">
                 {/* Level / XP */}
                 <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
-                  <span className="text-xl">🏆</span>
+                  <Trophy size={20} className="mx-auto text-amber-500" />
                   <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Nível Atual</div>
                   <div className="text-lg font-black text-slate-800 dark:text-slate-200">Level {Math.floor(totalXp / 100) + 1}</div>
                   <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">{totalXp % 100}/100 XP</div>
@@ -1518,7 +1521,7 @@ export default function App() {
 
                 {/* Completed Sentences */}
                 <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
-                  <span className="text-xl">📝</span>
+                  <CheckCircle size={20} className="mx-auto text-emerald-500" />
                   <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Frases Concluídas</div>
                   <div className="text-lg font-black text-slate-800 dark:text-slate-200">{completedSentenceIds.length} Frases</div>
                   <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Treinos Gerais</div>
@@ -1526,7 +1529,7 @@ export default function App() {
 
                 {/* Completed Songs */}
                 <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
-                  <span className="text-xl">🎵</span>
+                  <Music size={20} className="mx-auto text-indigo-500" />
                   <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Músicas Concluídas</div>
                   <div className="text-lg font-black text-slate-800 dark:text-slate-200">
                     {(() => {
@@ -1543,7 +1546,7 @@ export default function App() {
 
                 {/* Dial Errors */}
                 <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
-                  <span className="text-xl">⚠️</span>
+                  <AlertTriangle size={20} className="mx-auto text-red-500" />
                   <div className="text-[10px] font-mono font-black text-red-400 dark:text-red-500 uppercase tracking-widest">Erros de Discagem</div>
                   <div className="text-lg font-black text-red-600 dark:text-red-450">{dialErrorsCount} Erros</div>
                   <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Erros Detectados</div>

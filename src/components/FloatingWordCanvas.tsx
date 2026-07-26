@@ -952,8 +952,8 @@ export default function FloatingWordCanvas({
         </div>
       </div>
 
-      {/* Floating Tutorial Message at Bottom */}
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-white dark:bg-slate-900 border-2 border-indigo-100 dark:border-indigo-950 px-4 py-1.5 rounded-full text-[11px] text-slate-500 dark:text-slate-400 shadow-md text-center max-w-[90%] select-none pointer-events-none font-medium">
+      {/* Floating Tutorial Message at Bottom - Hidden */}
+      <div className="hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-white dark:bg-slate-900 border-2 border-indigo-100 dark:border-indigo-950 px-4 py-1.5 rounded-full text-[11px] text-slate-500 dark:text-slate-400 shadow-md text-center max-w-[90%] select-none pointer-events-none font-medium">
         💡 Arraste e solte ideogramas no <strong className="text-indigo-600 dark:text-indigo-400 font-bold">disco central</strong> para discar
       </div>
     </div>
