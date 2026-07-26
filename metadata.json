@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Montador de Frases em Chinês",
+  "description": "Um aplicativo interativo para aprender chinês arrastando ideogramas flutuantes para uma zona central de discagem.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
