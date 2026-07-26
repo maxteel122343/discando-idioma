@@ -472,6 +472,15 @@ export default function App() {
     return saved ? parseInt(saved, 10) : 0;
   });
 
+  const [totalXp, setTotalXp] = useState<number>(() => {
+    const saved = localStorage.getItem('hanzi_dial_total_xp');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('hanzi_dial_total_xp', String(totalXp));
+  }, [totalXp]);
+
   // AI Voice Assistant states
   const [isVoiceAssistantEnabled, setIsVoiceAssistantEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('hanzi_dial_assistant_enabled');
@@ -874,8 +883,8 @@ export default function App() {
     // Trigger AI Voice Assistant sentence completion speech (repeats whole sentence & praises user)
     triggerTutorGuidance(sentence, sentence.characters.length);
 
-    const prevXp = (completedSentenceIds.length * 20) + (completedEbookIndices.length * 25) + (completedMusicSentenceIndices.length * 25) + reviewXp;
-    const prevLevel = Math.floor(prevXp / 100) + 1;
+    const prevLevel = Math.floor(totalXp / 100) + 1;
+    let currentXp = totalXp + 15; // +15 XP por frase completada
 
     if (isMusicMode) {
       const activeTrack = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
@@ -885,8 +894,28 @@ export default function App() {
         setCompletedMusicSentenceIndices(updatedMusicIndices);
       }
 
-      const newXp = (completedSentenceIds.length * 20) + (completedEbookIndices.length * 25) + (updatedMusicIndices.length * 25) + reviewXp;
-      const newLevel = Math.floor(newXp / 100) + 1;
+      // Se concluiu a última frase da música
+      const isLastSentence = activeMusicSentenceIndex === (activeTrack ? activeTrack.sentences.length - 1 : -1);
+      if (isLastSentence && activeTrack) {
+        currentXp += 100; // Bônus significativo por completar a música toda!
+        
+        // Song finished! Unlock next song
+        const currentIndex = musicSongs.findIndex(s => s.id === activeSongId);
+        if (currentIndex !== -1 && currentIndex + 1 < musicSongs.length) {
+          const nextSong = musicSongs[currentIndex + 1];
+          if (nextSong.isLocked) {
+            const updatedSongs = musicSongs.map((s, idx) => idx === currentIndex + 1 ? { ...s, isLocked: false } : s);
+            setMusicSongs(updatedSongs);
+          }
+        }
+
+        setTimeout(() => {
+          alert(`🎉 INCRÍVEL! Você completou toda a música "${activeTrack.title}" do ${activeTrack.artist} e ganhou +100 XP de Bônus!`);
+        }, 1000);
+      }
+
+      setTotalXp(currentXp);
+      const newLevel = Math.floor(currentXp / 100) + 1;
 
       if (newLevel > prevLevel) {
         setLevelUpInfo({ newLevel });
@@ -904,17 +933,6 @@ export default function App() {
         if (activeTrack && nextIndex < activeTrack.sentences.length) {
           setActiveMusicSentenceIndex(nextIndex);
           handleClearSequence();
-        } else if (activeTrack) {
-          // Song finished! Unlock next song
-          const currentIndex = musicSongs.findIndex(s => s.id === activeSongId);
-          if (currentIndex !== -1 && currentIndex + 1 < musicSongs.length) {
-            const nextSong = musicSongs[currentIndex + 1];
-            if (nextSong.isLocked) {
-              const updatedSongs = musicSongs.map((s, idx) => idx === currentIndex + 1 ? { ...s, isLocked: false } : s);
-              setMusicSongs(updatedSongs);
-              alert(`🎉 Incrível! Você completou toda a música "${activeTrack.title}" e desbloqueou a próxima faixa "${nextSong.title}"!`);
-            }
-          }
         }
       }, 4000);
       return;
@@ -927,8 +945,17 @@ export default function App() {
         setCompletedEbookIndices(updatedEbookIndices);
       }
 
-      const newXp = (completedSentenceIds.length * 20) + (updatedEbookIndices.length * 25) + reviewXp;
-      const newLevel = Math.floor(newXp / 100) + 1;
+      // Se concluiu o Ebook inteiro (última página)
+      const isLastPage = activeEbookIndex === (ebookSentences.length - 1);
+      if (isLastPage) {
+        currentXp += 100; // Bônus por livro todo lido!
+        setTimeout(() => {
+          alert(`📖 LEITOR DE ELITE! Você completou a leitura do livro "${ebookName}" e ganhou +100 XP Extra!`);
+        }, 1000);
+      }
+
+      setTotalXp(currentXp);
+      const newLevel = Math.floor(currentXp / 100) + 1;
 
       if (newLevel > prevLevel) {
         setLevelUpInfo({ newLevel });
@@ -952,11 +979,8 @@ export default function App() {
     }
 
     if (isReviewMode) {
-      const nextReviewXp = reviewXp + 15;
-      setReviewXp(nextReviewXp);
-
-      const newXp = (completedSentenceIds.length * 20) + (completedEbookIndices.length * 25) + nextReviewXp;
-      const newLevel = Math.floor(newXp / 100) + 1;
+      setTotalXp(currentXp);
+      const newLevel = Math.floor(currentXp / 100) + 1;
 
       if (newLevel > prevLevel) {
         setLevelUpInfo({ newLevel });
@@ -978,24 +1002,24 @@ export default function App() {
     if (!completedSentenceIds.includes(sentence.id)) {
       const updated = [...completedSentenceIds, sentence.id];
       setCompletedSentenceIds(updated);
-      
-      const newXp = (updated.length * 20) + (completedEbookIndices.length * 25) + reviewXp;
-      const newLevel = Math.floor(newXp / 100) + 1;
-
-      if (newLevel > prevLevel) {
-        setLevelUpInfo({ newLevel });
-        playFanfare();
-      } else {
-        playFanfare();
-      }
-
-      setCelebratedSentence(sentence);
-      setShowCelebration(true);
-
-      setTimeout(() => {
-        setShowCelebration(false);
-      }, 4500);
     }
+    
+    setTotalXp(currentXp);
+    const newLevel = Math.floor(currentXp / 100) + 1;
+
+    if (newLevel > prevLevel) {
+      setLevelUpInfo({ newLevel });
+      playFanfare();
+    } else {
+      playFanfare();
+    }
+
+    setCelebratedSentence(sentence);
+    setShowCelebration(true);
+
+    setTimeout(() => {
+      setShowCelebration(false);
+    }, 4500);
   };
 
   // Reset progress handler
@@ -1007,6 +1031,7 @@ export default function App() {
       setIsReviewMode(false);
       setReviewSentenceId(null);
       setReviewXp(0);
+      setTotalXp(0);
       setIsEbookMode(false);
       setEbookName('');
       setEbookSentences([]);
@@ -1018,6 +1043,10 @@ export default function App() {
 
   // State handlers passed to canvas
   const handleSequenceUpdate = (seq: string[], wordIds: string[]) => {
+    if (seq.length > activeSequence.length) {
+      const added = seq.length - activeSequence.length;
+      setTotalXp((prev) => prev + added * 2);
+    }
     setActiveSequence(seq);
     setActiveWordIds(wordIds);
   };
@@ -1065,11 +1094,21 @@ export default function App() {
             </button>
 
             {/* Quick XP progress indicator */}
-            <div className="hidden sm:flex items-center gap-2 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1.5 rounded-full text-[11px] font-bold text-indigo-650 dark:text-indigo-450">
-              <Trophy size={13} className="text-amber-500" />
-              <span>XP: <strong className="font-extrabold text-slate-850 dark:text-slate-200">{(completedSentenceIds.length * 20) + (completedEbookIndices.length * 25) + reviewXp}</strong></span>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
-              <span>Level <strong className="font-extrabold text-slate-850 dark:text-slate-200">{Math.floor(((completedSentenceIds.length * 20) + (completedEbookIndices.length * 25) + reviewXp) / 100) + 1}</strong></span>
+            <div className="flex items-center gap-2 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-3 py-1.5 rounded-full text-[11px] font-bold text-indigo-650 dark:text-indigo-450 shadow-sm">
+              <Trophy size={13} className="text-amber-500 shrink-0 animate-bounce" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+                <span className="whitespace-nowrap">Level <strong className="font-extrabold text-slate-850 dark:text-slate-200">{Math.floor(totalXp / 100) + 1}</strong></span>
+                <span className="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">{totalXp % 100}/100 XP</span>
+                  <div className="w-12 sm:w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      style={{ width: `${totalXp % 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Music Mode Switcher Button - Desktop only, mobile uses bottom nav */}
@@ -1538,7 +1577,7 @@ export default function App() {
 
             <div className="bg-white/10 dark:bg-black/30 border border-white/10 p-3 rounded-2xl text-xs font-mono font-bold text-amber-300 flex items-center justify-center gap-2">
               <Sparkles size={16} className="text-amber-400 animate-spin-slow" />
-              <span>XP Total: {(completedSentenceIds.length * 20) + (completedEbookIndices.length * 25) + reviewXp} XP</span>
+              <span>XP Total: {totalXp} XP</span>
             </div>
 
             <button
