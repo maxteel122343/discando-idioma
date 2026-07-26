@@ -519,6 +519,192 @@ export default function App() {
     localStorage.setItem('hanzi_dial_native_lang', nativeLanguageCode);
   }, [nativeLanguageCode]);
 
+  const renderSettingsContent = () => (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full p-5 sm:p-6 shadow-xl relative space-y-4 text-left">
+      {/* Title */}
+      <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+        <SlidersHorizontal className="text-indigo-600 dark:text-indigo-400" size={20} />
+        <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+          Configurações do Aprendizado
+        </h3>
+      </div>
+
+      {/* Visual Theme & Tips Quick Toggles */}
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        {/* Theme Selector */}
+        <button
+          onClick={() => { playTick(); setIsMonochrome(prev => !prev); }}
+          className={`p-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2.5 ${
+            isMonochrome
+              ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-extrabold shadow-md"
+              : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+          }`}
+        >
+          <Palette size={16} />
+          <div className="text-left leading-tight">
+            <p className="font-black text-[11px]">{isMonochrome ? "P&B Minimalista" : "Tema Colorido"}</p>
+            <p className="text-[9px] opacity-70">Clique para alternar</p>
+          </div>
+        </button>
+
+        {/* Hints Toggle */}
+        <button
+          onClick={() => { playTick(); setIsHintEnabled(prev => !prev); }}
+          className={`p-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2.5 ${
+            isHintEnabled
+              ? "bg-amber-400 text-slate-950 border-amber-500 font-black shadow-md"
+              : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"
+          }`}
+        >
+          <Lightbulb size={16} />
+          <div className="text-left leading-tight">
+            <p className="font-black text-[11px]">Dicas Guiadas</p>
+            <p className="text-[9px] opacity-80">{isHintEnabled ? "Ativadas (Piscando)" : "Desativadas"}</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Language Selection Grid */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center text-xs">
+          <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <Globe size={14} className="text-indigo-600 dark:text-indigo-400" />
+            Idioma que deseja Aprender
+          </span>
+          <span className="font-mono font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full text-[10px]">
+            {currentLanguage.flag} {currentLanguage.name}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+          {LANGUAGES.map((lang) => {
+            const isSelected = lang.id === selectedLanguageId;
+            return (
+              <button
+                key={lang.id}
+                onClick={() => handleSelectLanguage(lang.id)}
+                className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 ${
+                  isSelected
+                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md ring-2 ring-indigo-400/30 scale-[0.98]"
+                    : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+                }`}
+              >
+                <span className="text-lg">{lang.flag}</span>
+                <div className="min-w-0">
+                  <p className="font-extrabold text-[11px] truncate leading-tight">{lang.name}</p>
+                  <p className={`text-[8px] font-mono uppercase ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
+                    {lang.phoneticLabel}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Velocity Slider */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center text-xs">
+          <span className="font-bold text-slate-700 dark:text-slate-300">Velocidade das Palavras</span>
+          <span className="font-mono font-black text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full text-[10px]">
+            {cardSpeed === 0 ? "Pausado (0x)" : cardSpeed === 0.5 ? "Lento (0.5x)" : cardSpeed === 1.5 ? "Rápido (1.5x)" : cardSpeed === 2 ? "Frenético (2x)" : "Padrão (1x)"}
+          </span>
+        </div>
+        <div className="grid grid-cols-5 gap-1.5">
+          {[0, 0.5, 1.0, 1.5, 2.0].map((val) => (
+            <button
+              key={val}
+              onClick={() => { playTick(); setCardSpeed(val); }}
+              className={`py-1.5 px-1 rounded-xl text-[11px] font-black transition-all border cursor-pointer ${
+                cardSpeed === val
+                  ? "bg-indigo-600 text-white border-indigo-500 shadow-md scale-95"
+                  : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-300"
+              }`}
+            >
+              {val}x
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Movement Type */}
+      <div className="space-y-2">
+        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Estilo de Movimentação</span>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => { playTick(); setCardMovementType('drift'); }}
+            className={`p-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+              cardMovementType === 'drift'
+                ? "bg-orange-500/10 border-orange-400 text-orange-700 dark:text-orange-450 font-extrabold"
+                : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
+            }`}
+          >
+            <span className="text-lg">☁️</span>
+            <div className="text-center">
+              <p className="font-black text-[11px]">Flutuação Livre</p>
+              <p className="text-[9px] opacity-70 mt-0.5 font-medium">Bate nas bordas e dialer</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => { playTick(); setCardMovementType('orbit'); }}
+            className={`p-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+              cardMovementType === 'orbit'
+                ? "bg-indigo-500/10 border-indigo-400 text-indigo-700 dark:text-indigo-400 font-extrabold"
+                : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
+            }`}
+          >
+            <span className="text-lg">🪐</span>
+            <div className="text-center">
+              <p className="font-black text-[11px]">Órbita em Anéis</p>
+              <p className="text-[9px] opacity-70 mt-0.5 font-medium">Gira e desvia do centro</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* TTS Speech Rate (Vocal Speed) */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center text-xs">
+          <span className="font-bold text-slate-700 dark:text-slate-300">Velocidade da Leitura por Voz</span>
+          <span className="font-mono font-black text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full text-[10px]">
+            {speechRate === 0.6 ? "Lenta (0.6x)" : speechRate === 1.0 ? "Nativa (1x)" : speechRate === 1.2 ? "Rápida (1.2x)" : "Estudo (0.85x)"}
+          </span>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {[
+            { val: 0.6, label: "0.6x" },
+            { val: 0.85, label: "0.85x" },
+            { val: 1.0, label: "1.0x" },
+            { val: 1.2, label: "1.2x" }
+          ].map((item) => (
+            <button
+              key={item.val}
+              onClick={() => { playTick(); setSpeechRate(item.val); }}
+              className={`py-2 px-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                speechRate === item.val
+                  ? "bg-indigo-600 text-white border-indigo-500 shadow-md scale-95"
+                  : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-900/30 p-3 rounded-2xl text-[10px] leading-relaxed text-indigo-900/80 dark:text-indigo-300/80 font-medium">
+        💡 <strong>Dica de Prática:</strong> A órbita em anéis mantém as palavras em órbitas elípticas que nunca entram no centro da tela, deixando a zona de montagem de frases totalmente livre e limpa!
+      </div>
+
+      <button
+        onClick={() => { playTick(); setIsSettingsOpen(false); }}
+        className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-black tracking-wider uppercase transition-all shadow-md cursor-pointer"
+      >
+        Confirmar Ajustes
+      </button>
+    </div>
+  );
+
   // Trigger AI Voice Assistant guidance for the active target word or completed sentence
   const triggerTutorGuidance = (overrideSentence?: Sentence, customSeqLen?: number) => {
     if (!isVoiceAssistantEnabled) return;
@@ -1477,6 +1663,13 @@ export default function App() {
             </div>
           )}
 
+          {/* Settings panel for Mobile/Tablet Inline view */}
+          {isSettingsOpen && (
+            <div className="lg:hidden w-full max-w-xl mx-auto animate-slide-up pb-2">
+              {renderSettingsContent()}
+            </div>
+          )}
+
           {/* Interactive Floating Words Arena Canvas */}
           <FloatingWordCanvas
             sentences={activeSentences}
@@ -1509,6 +1702,43 @@ export default function App() {
             onSelectLanguage={(id) => handleSelectLanguage(id)}
             onTriggerVoiceGuidance={() => triggerTutorGuidance()}
           />
+
+          {/* Default Home Page Info & Stats (rendered only when on the Home page and not in ebook/settings) */}
+          {!isMusicMode && !isEbookMode && !isSettingsOpen && (
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-5 shadow-lg space-y-4 w-full text-left animate-fade-in">
+              <div className="flex items-center gap-2.5 border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
+                <span className="text-xl">🏠</span>
+                <div>
+                  <h4 className="text-xs font-black text-slate-850 dark:text-slate-100 uppercase tracking-tight">
+                    Painel Principal & Metodologia
+                  </h4>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium">
+                    Discagem de Ideogramas SVO (Sujeito-Verbo-Objeto)
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100/30">
+                  <h5 className="text-[9px] font-mono font-bold text-indigo-500 uppercase tracking-wider">Seu Progresso</h5>
+                  <p className="text-sm font-black text-slate-900 dark:text-slate-100 mt-1">
+                    {completedSentenceIds.length} Frases Concluídas
+                  </p>
+                </div>
+                <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100/30">
+                  <h5 className="text-[9px] font-mono font-bold text-emerald-500 uppercase tracking-wider">Pontuação Total</h5>
+                  <p className="text-sm font-black text-slate-900 dark:text-slate-100 mt-1">
+                    {totalXp} XP Acumulados
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 space-y-1 bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl font-medium">
+                <p>💡 <strong>Como Jogar:</strong> Arraste e solte cada ideograma da parte superior para o disco de discagem central na ordem correta da frase apresentada. Ao completar, você ganha <strong>+15 XP</strong> e avança de nível.</p>
+                <p>⚙️ <strong>Modificar Dificuldade:</strong> Use o menu lateral (ou mude a categoria) para filtrar as frases.</p>
+              </div>
+            </div>
+          )}
 
           {/* Active Song Lyrics (Legendas) below the Dialer Canvas */}
           {isMusicMode && (() => {
@@ -1673,7 +1903,13 @@ export default function App() {
           />
         )}
 
-        {!isMusicMode && !isEbookMode && (
+        {!isMusicMode && isSettingsOpen && (
+          <div className="hidden lg:block w-[400px] flex-shrink-0 z-30 animate-fade-in">
+            {renderSettingsContent()}
+          </div>
+        )}
+
+        {!isMusicMode && !isEbookMode && !isSettingsOpen && (
           <div 
             className={`
               lg:block flex-shrink-0 z-40
@@ -1780,201 +2016,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings Overlay Dialog */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative space-y-5">
-            
-            <button
-              onClick={() => { playTick(); setIsSettingsOpen(false); }}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all cursor-pointer"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <SlidersHorizontal className="text-indigo-600 dark:text-indigo-400" size={20} />
-              <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                Configurações do Aprendizado
-              </h3>
-            </div>
-
-            {/* Visual Theme & Tips Quick Toggles */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              {/* Theme Selector */}
-              <button
-                onClick={() => { playTick(); setIsMonochrome(prev => !prev); }}
-                className={`p-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2.5 ${
-                  isMonochrome
-                    ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-extrabold shadow-md"
-                    : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
-                }`}
-              >
-                <Palette size={16} />
-                <div className="text-left leading-tight">
-                  <p className="font-black text-[11px]">{isMonochrome ? "P&B Minimalista" : "Tema Colorido"}</p>
-                  <p className="text-[9px] opacity-70">Clique para alternar</p>
-                </div>
-              </button>
-
-              {/* Hints Toggle */}
-              <button
-                onClick={() => { playTick(); setIsHintEnabled(prev => !prev); }}
-                className={`p-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2.5 ${
-                  isHintEnabled
-                    ? "bg-amber-400 text-slate-950 border-amber-500 font-black shadow-md"
-                    : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"
-                }`}
-              >
-                <Lightbulb size={16} />
-                <div className="text-left leading-tight">
-                  <p className="font-black text-[11px]">Dicas Guiadas</p>
-                  <p className="text-[9px] opacity-80">{isHintEnabled ? "Ativadas (Piscando)" : "Desativadas"}</p>
-                </div>
-              </button>
-            </div>
-
-            {/* Language Selection Grid */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Globe size={14} className="text-indigo-600 dark:text-indigo-400" />
-                  Idioma que deseja Aprender
-                </span>
-                <span className="font-mono font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full text-[10px]">
-                  {currentLanguage.flag} {currentLanguage.name}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-1">
-                {LANGUAGES.map((lang) => {
-                  const isSelected = lang.id === selectedLanguageId;
-                  return (
-                    <button
-                      key={lang.id}
-                      onClick={() => handleSelectLanguage(lang.id)}
-                      className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 ${
-                        isSelected
-                          ? "bg-indigo-600 text-white border-indigo-500 shadow-md ring-2 ring-indigo-400/30 scale-[0.98]"
-                          : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
-                      }`}
-                    >
-                      <span className="text-lg">{lang.flag}</span>
-                      <div className="min-w-0">
-                        <p className="font-extrabold text-[11px] truncate leading-tight">{lang.name}</p>
-                        <p className={`text-[8px] font-mono uppercase ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
-                          {lang.phoneticLabel}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Velocity Slider */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-700 dark:text-slate-300">Velocidade das Palavras</span>
-                <span className="font-mono font-black text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full text-[10px]">
-                  {cardSpeed === 0 ? "Pausado (0x)" : cardSpeed === 0.5 ? "Lento (0.5x)" : cardSpeed === 1.5 ? "Rápido (1.5x)" : cardSpeed === 2 ? "Frenético (2x)" : "Padrão (1x)"}
-                </span>
-              </div>
-              <div className="grid grid-cols-5 gap-1.5">
-                {[0, 0.5, 1.0, 1.5, 2.0].map((val) => (
-                  <button
-                    key={val}
-                    onClick={() => { playTick(); setCardSpeed(val); }}
-                    className={`py-1.5 px-1 rounded-xl text-[11px] font-black transition-all border cursor-pointer ${
-                      cardSpeed === val
-                        ? "bg-indigo-600 text-white border-indigo-500 shadow-md scale-95"
-                        : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-850 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
-                    }`}
-                  >
-                    {val}x
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Movement Type */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Estilo de Movimentação</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => { playTick(); setCardMovementType('drift'); }}
-                  className={`p-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
-                    cardMovementType === 'drift'
-                      ? "bg-orange-500/10 border-orange-400 text-orange-700 dark:text-orange-450 font-extrabold"
-                      : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
-                  }`}
-                >
-                  <span className="text-lg">☁️</span>
-                  <div className="text-center">
-                    <p className="font-black text-[11px]">Flutuação Livre</p>
-                    <p className="text-[9px] opacity-70 mt-0.5 font-medium">Bate nas bordas e dialer</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => { playTick(); setCardMovementType('orbit'); }}
-                  className={`p-3 rounded-2xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
-                    cardMovementType === 'orbit'
-                      ? "bg-indigo-500/10 border-indigo-400 text-indigo-700 dark:text-indigo-400 font-extrabold"
-                      : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
-                  }`}
-                >
-                  <span className="text-lg">🪐</span>
-                  <div className="text-center">
-                    <p className="font-black text-[11px]">Órbita em Anéis</p>
-                    <p className="text-[9px] opacity-70 mt-0.5 font-medium">Gira e desvia do centro</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* TTS Speech Rate (Vocal Speed) */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-700 dark:text-slate-300">Velocidade da Leitura por Voz</span>
-                <span className="font-mono font-black text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full text-[10px]">
-                  {speechRate === 0.6 ? "Lenta (0.6x)" : speechRate === 1.0 ? "Nativa (1x)" : speechRate === 1.2 ? "Rápida (1.2x)" : "Estudo (0.85x)"}
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { val: 0.6, label: "0.6x" },
-                  { val: 0.85, label: "0.85x" },
-                  { val: 1.0, label: "1.0x" },
-                  { val: 1.2, label: "1.2x" }
-                ].map((item) => (
-                  <button
-                    key={item.val}
-                    onClick={() => { playTick(); setSpeechRate(item.val); }}
-                    className={`py-2 px-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                      speechRate === item.val
-                        ? "bg-indigo-600 text-white border-indigo-500 shadow-md scale-95"
-                        : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-900/30 p-3 rounded-2xl text-[10px] leading-relaxed text-indigo-900/80 dark:text-indigo-300/80 font-medium">
-              💡 <strong>Dica de Prática:</strong> A órbita em anéis mantém as palavras em órbitas elípticas que nunca entram no centro da tela, deixando a zona de montagem de frases totalmente livre e limpa!
-            </div>
-
-            <button
-              onClick={() => { playTick(); setIsSettingsOpen(false); }}
-              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-black tracking-wider uppercase transition-all shadow-md cursor-pointer"
-            >
-              Confirmar Ajustes
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );
