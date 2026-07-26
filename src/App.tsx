@@ -9,6 +9,7 @@ import AIVoiceAssistantCard from './components/AIVoiceAssistantCard';
 import MusicVitrine from './components/MusicVitrine';
 import CelebrationToast from './components/CelebrationToast';
 import LyricsKaraokePanel from './components/LyricsKaraokePanel';
+import LyricsStrip from './components/LyricsStrip';
 import WordRainOverlay from './components/WordRainOverlay';
 import { SENTENCES } from './data/sentences';
 import { LANGUAGES, LanguageConfig } from './data/languages';
@@ -49,7 +50,9 @@ import {
   CheckCircle,
   AlertTriangle,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Expand,
+  Shrink
 } from 'lucide-react';
 
 const PRELOADED_BOOKS: Record<string, { name: string; sentences: Sentence[] }> = {
@@ -476,23 +479,10 @@ export default function App() {
 
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
 
-  // ── Fullscreen & Karaoke state ─────────────────────────────────────────────
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  // ── Expanded Canvas & Karaoke state ─────────────────────────────────────────
+  // isExpandedCanvas: expands the dialer canvas section + shows lyrics strip below
+  const [isExpandedCanvas, setIsExpandedCanvas] = useState(false);
   const [wordRainTrigger, setWordRainTrigger] = useState(0);
-
-  useEffect(() => {
-    const onFSChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', onFSChange);
-    return () => document.removeEventListener('fullscreenchange', onFSChange);
-  }, []);
-
-  const handleToggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
 
   // Auto-advance lyrics timer — fires every 30s when music is playing
   const autoAdvanceRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -518,7 +508,7 @@ export default function App() {
       prevMusicIdxRef.current = activeMusicSentenceIndex;
     }
   }, [activeMusicSentenceIndex, isMusicMode]);
-  // ───────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
   const [dialErrorsCount, setDialErrorsCount] = useState<number>(() => {
     const saved = localStorage.getItem('hanzi_dial_dial_errors_count');
     return saved ? parseInt(saved, 10) : 0;
@@ -1250,14 +1240,14 @@ export default function App() {
               </button>
             )}
 
-            {/* Fullscreen toggle — visible in music mode */}
+            {/* Expanded Canvas toggle — visible in music mode */}
             {isMusicMode && (
               <button
-                onClick={() => { playTick(); handleToggleFullscreen(); }}
+                onClick={() => { playTick(); setIsExpandedCanvas(prev => !prev); }}
                 className="flex items-center justify-center p-2 rounded-full bg-slate-50 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all active:scale-95 cursor-pointer"
-                title={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia (modo karaoke)'}
+                title={isExpandedCanvas ? 'Recolher discador' : 'Expandir discador + letras'}
               >
-                {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                {isExpandedCanvas ? <Shrink size={15} /> : <Expand size={15} />}
               </button>
             )}
 
@@ -1573,39 +1563,62 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <FloatingWordCanvas
-              sentences={activeSentences}
-              completedSentenceIds={completedSentenceIds}
-              activeSequence={activeSequence}
-              activeWordIds={activeWordIds}
-              currentCategory={currentCategory}
-              selectedDifficulty={selectedDifficulty}
-              onSentenceCompleted={handleSentenceCompleted}
-              onSequenceUpdate={handleSequenceUpdate}
-              onClearSequence={handleClearSequence}
-              onDialError={handleDialError}
-              isReviewMode={isReviewMode}
-              reviewSentenceId={reviewSentenceId}
-              onExitReview={handleExitReview}
-              onNextReviewSentence={handleNextReviewSentence}
-              cardSpeed={cardSpeed}
-              cardMovementType={cardMovementType}
-              isEbookMode={isEbookMode}
-              activeEbookSentence={ebookSentences[activeEbookIndex] || null}
-              ebookSentences={ebookSentences}
-              isMusicMode={isMusicMode}
-              activeMusicSentence={(musicSongs.find(s => s.id === activeSongId) || musicSongs[0])?.sentences[activeMusicSentenceIndex] || null}
-              phoneticLabel={currentLanguage.phoneticLabel}
-              isHintEnabled={isHintEnabled}
-              onToggleHint={() => setIsHintEnabled(prev => !prev)}
-              isMonochrome={isMonochrome}
-              onToggleMonochrome={() => setIsMonochrome(prev => !prev)}
-              currentLanguage={currentLanguage}
-              allLanguages={LANGUAGES}
-              onSelectLanguage={(id) => handleSelectLanguage(id)}
-              onTriggerVoiceGuidance={() => triggerTutorGuidance()}
-            />
+            /* Canvas wrapper — expands in music mode when isExpandedCanvas is active */
+            <div className={`relative w-full flex flex-col transition-all duration-500 rounded-2xl overflow-hidden ${
+              isExpandedCanvas && isMusicMode ? 'ring-2 ring-indigo-500/30 shadow-2xl shadow-indigo-500/10' : ''
+            }`}>
+              <FloatingWordCanvas
+                sentences={activeSentences}
+                completedSentenceIds={completedSentenceIds}
+                activeSequence={activeSequence}
+                activeWordIds={activeWordIds}
+                currentCategory={currentCategory}
+                selectedDifficulty={selectedDifficulty}
+                onSentenceCompleted={handleSentenceCompleted}
+                onSequenceUpdate={handleSequenceUpdate}
+                onClearSequence={handleClearSequence}
+                onDialError={handleDialError}
+                isReviewMode={isReviewMode}
+                reviewSentenceId={reviewSentenceId}
+                onExitReview={handleExitReview}
+                onNextReviewSentence={handleNextReviewSentence}
+                cardSpeed={cardSpeed}
+                cardMovementType={cardMovementType}
+                isEbookMode={isEbookMode}
+                activeEbookSentence={ebookSentences[activeEbookIndex] || null}
+                ebookSentences={ebookSentences}
+                isMusicMode={isMusicMode}
+                activeMusicSentence={(musicSongs.find(s => s.id === activeSongId) || musicSongs[0])?.sentences[activeMusicSentenceIndex] || null}
+                phoneticLabel={currentLanguage.phoneticLabel}
+                isHintEnabled={isHintEnabled}
+                onToggleHint={() => setIsHintEnabled(prev => !prev)}
+                isMonochrome={isMonochrome}
+                onToggleMonochrome={() => setIsMonochrome(prev => !prev)}
+                currentLanguage={currentLanguage}
+                allLanguages={LANGUAGES}
+                onSelectLanguage={(id) => handleSelectLanguage(id)}
+                onTriggerVoiceGuidance={() => triggerTutorGuidance()}
+              />
+
+              {/* LyricsStrip — Spotify-style, shown below dialer in expanded music mode */}
+              {isExpandedCanvas && isMusicMode && (() => {
+                const song = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+                const sentences = song?.sentences || [];
+                return (
+                  <LyricsStrip
+                    sentences={sentences}
+                    activeIndex={activeMusicSentenceIndex}
+                    onSelectIndex={(idx) => {
+                      setActiveMusicSentenceIndex(idx);
+                      setWordRainTrigger(t => t + 1);
+                    }}
+                    completedIndices={completedMusicSentenceIndices}
+                  />
+                );
+              })()}
+            </div>
           )}
+
 
           {/* ── Word Rain Overlay (portal, fullscreen music mode) ────────────── */}
           {isMusicMode && (() => {
@@ -1625,11 +1638,7 @@ export default function App() {
             const currentSong = musicSongs.find((s) => s.id === activeSongId) || musicSongs[0];
             const sentences = currentSong?.sentences || [];
             return (
-              <div className={`relative w-full transition-all duration-500 ${
-                isFullscreen
-                  ? 'hidden' // hidden in fullscreen — lyrics show overlaid on right
-                  : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-4 shadow-lg space-y-3'
-              }`}>
+              <div className="relative w-full transition-all duration-500 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-4 shadow-lg space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
                   <div className="flex items-center gap-2.5">
                     <span className="text-xl">🎵</span>
