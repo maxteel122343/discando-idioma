@@ -163,37 +163,86 @@ export function playFanfare() {
 }
 
 /**
- * Speaks a text in any target language using SpeechSynthesis with custom BCP-47 code and speed rate
+ * Google Cloud TTS voice map — Neural2/Wavenet voices per language code prefix
+ */
+const GOOGLE_TTS_VOICES: Record<string, { name: string; ssmlGender: string }> = {
+  'zh': { name: 'cmn-CN-Wavenet-A', ssmlGender: 'FEMALE' },
+  'en': { name: 'en-US-Neural2-F',  ssmlGender: 'FEMALE' },
+  'pt': { name: 'pt-BR-Neural2-A',  ssmlGender: 'FEMALE' },
+  'es': { name: 'es-ES-Neural2-A',  ssmlGender: 'FEMALE' },
+  'fr': { name: 'fr-FR-Neural2-A',  ssmlGender: 'FEMALE' },
+  'de': { name: 'de-DE-Neural2-A',  ssmlGender: 'FEMALE' },
+  'ja': { name: 'ja-JP-Neural2-B',  ssmlGender: 'FEMALE' },
+  'ko': { name: 'ko-KR-Neural2-A',  ssmlGender: 'FEMALE' },
+};
+
+let googleTtsAudio: HTMLAudioElement | null = null;
+
+/**
+ * Speaks text via Google Cloud TTS API (neural voices).
+ * Returns true on success, false if unavailable or errored.
+ */
+async function speakWithGoogleTTS(text: string, ttsCode: string, rate: number): Promise<boolean> {
+  const apiKey = (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY;
+  if (!apiKey) return false;
+
+  const prefix = ttsCode.split('-')[0].toLowerCase();
+  const voiceConfig = GOOGLE_TTS_VOICES[prefix] || { name: `${ttsCode}-Wavenet-A`, ssmlGender: 'FEMALE' };
+
+  try {
+    const resp = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text },
+          voice: { languageCode: ttsCode, name: voiceConfig.name, ssmlGender: voiceConfig.ssmlGender },
+          audioConfig: { audioEncoding: 'MP3', speakingRate: rate },
+        }),
+      }
+    );
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    if (!data.audioContent) return false;
+
+    // Play the returned base64 MP3
+    if (googleTtsAudio) { googleTtsAudio.pause(); }
+    googleTtsAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+    await googleTtsAudio.play();
+    return true;
+  } catch (e) {
+    console.warn('Google TTS failed, falling back to Web Speech API', e);
+    return false;
+  }
+}
+
+/**
+ * Speaks a text in any target language.
+ * Tries Google Cloud TTS (neural) first, falls back to Web Speech API.
  */
 export function speakLanguageText(text: string, ttsCode: string = 'zh-CN', rate?: number): Promise<boolean> {
-  return new Promise((resolve) => {
+  const effectiveRate = rate || 0.85;
+  const cleanText = text.replace(/[?？.。!！,，;；:：]/g, '');
+
+  return new Promise(async (resolve) => {
+    // Try Google Cloud TTS first
+    const googleOk = await speakWithGoogleTTS(cleanText, ttsCode, effectiveRate);
+    if (googleOk) { resolve(true); return; }
+
+    // Fallback: Web Speech API
     try {
-      if (!('speechSynthesis' in window)) {
-        console.warn('TTS not supported');
-        resolve(false);
-        return;
-      }
-      
-      // Stop current speaking
+      if (!('speechSynthesis' in window)) { resolve(false); return; }
       window.speechSynthesis.cancel();
-      
-      // Filter out punctuation that might sound weird in standard speech synthesis
-      const cleanText = text.replace(/[?？.。!！,，;；:：]/g, '');
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = ttsCode;
-      utterance.rate = rate || 0.85; // custom rate, defaults to slightly slower for language learners
-
-      // Try to find a matching voice for language prefix (e.g. 'es', 'fr', 'en', 'zh', etc.)
+      utterance.rate = effectiveRate;
       const voices = window.speechSynthesis.getVoices();
       const prefix = ttsCode.split('-')[0].toLowerCase();
       const matchVoice = voices.find(v => v.lang.toLowerCase().startsWith(prefix));
-      if (matchVoice) {
-        utterance.voice = matchVoice;
-      }
-      
+      if (matchVoice) utterance.voice = matchVoice;
       utterance.onend = () => resolve(true);
       utterance.onerror = () => resolve(false);
-      
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       console.warn('TTS speaking failed', e);

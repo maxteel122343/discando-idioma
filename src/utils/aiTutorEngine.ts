@@ -1,7 +1,58 @@
 /**
  * AI Voice Assistant Engine ("Assistente Linguo")
  * Provides friendly, dynamic, conversational speech synthesis guiding language learners.
+ * Uses Google Cloud TTS (Neural2) as primary voice, with Web Speech API as fallback.
  */
+
+// ─── Google Cloud TTS (Neural2) ───────────────────────────────────────────────
+const GOOGLE_TUTOR_VOICES: Record<string, { name: string; gender: string }> = {
+  'pt': { name: 'pt-BR-Neural2-A', gender: 'FEMALE' },
+  'en': { name: 'en-US-Neural2-F', gender: 'FEMALE' },
+  'zh': { name: 'cmn-CN-Wavenet-A', gender: 'FEMALE' },
+  'es': { name: 'es-ES-Neural2-A', gender: 'FEMALE' },
+  'fr': { name: 'fr-FR-Neural2-A', gender: 'FEMALE' },
+  'de': { name: 'de-DE-Neural2-A', gender: 'FEMALE' },
+  'ja': { name: 'ja-JP-Neural2-B', gender: 'FEMALE' },
+  'ko': { name: 'ko-KR-Neural2-A', gender: 'FEMALE' },
+};
+
+let _googleTtsAudio: HTMLAudioElement | null = null;
+
+async function _speakGoogleTTS(text: string, langCode: string, rate: number): Promise<boolean> {
+  const apiKey = (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY;
+  if (!apiKey) return false;
+  const prefix = langCode.split('-')[0].toLowerCase();
+  const voice = GOOGLE_TUTOR_VOICES[prefix] || { name: `${langCode}-Wavenet-A`, gender: 'FEMALE' };
+  try {
+    const resp = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text },
+          voice: { languageCode: langCode, name: voice.name, ssmlGender: voice.gender },
+          audioConfig: { audioEncoding: 'MP3', speakingRate: rate },
+        }),
+      }
+    );
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    if (!data.audioContent) return false;
+    if (_googleTtsAudio) _googleTtsAudio.pause();
+    _googleTtsAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+    await new Promise<void>((res) => {
+      _googleTtsAudio!.onended = () => res();
+      _googleTtsAudio!.onerror = () => res();
+      _googleTtsAudio!.play().catch(() => res());
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 
 export interface NativeLanguageOption {
   code: string;
@@ -237,7 +288,7 @@ export function speakTutorSequence(
 
   let idx = 0;
 
-  function speakNext() {
+  async function speakNext() {
     if (token !== currentCancelToken) return;
 
     if (idx >= items.length) {
@@ -252,41 +303,39 @@ export function speakTutorSequence(
       onStartItem(item.text, isTargetLang);
     }
 
+    const rate = item.rate || 0.98;
+
+    // Try Google Cloud TTS first
+    const googleOk = await _speakGoogleTTS(item.text, item.langCode, rate);
+    if (googleOk) {
+      if (token === currentCancelToken) { idx++; speakNext(); }
+      return;
+    }
+
+    // Fallback: Web Speech API
     const utterance = new SpeechSynthesisUtterance(item.text);
     utterance.lang = item.langCode;
-    utterance.rate = item.rate || 0.98; // Natural, conversational pace
-    utterance.pitch = item.pitch || 1.05; // Warm, lively pitch
+    utterance.rate = rate;
+    utterance.pitch = item.pitch || 1.05;
 
     try {
       const voices = window.speechSynthesis.getVoices();
       const prefix = item.langCode.split('-')[0].toLowerCase();
-      // Prefer Google or natural neural voices if available
-      const naturalVoice = voices.find(v => 
-        v.lang.toLowerCase().startsWith(prefix) && 
+      const naturalVoice = voices.find(v =>
+        v.lang.toLowerCase().startsWith(prefix) &&
         (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Premium'))
       ) || voices.find(v => v.lang.toLowerCase().startsWith(prefix));
-
-      if (naturalVoice) {
-        utterance.voice = naturalVoice;
-      }
+      if (naturalVoice) utterance.voice = naturalVoice;
     } catch (e) {
       console.warn('Voice lookup failed', e);
     }
 
     utterance.onend = () => {
-      if (token === currentCancelToken) {
-        idx++;
-        speakNext();
-      }
+      if (token === currentCancelToken) { idx++; speakNext(); }
     };
-
     utterance.onerror = () => {
-      if (token === currentCancelToken) {
-        idx++;
-        speakNext();
-      }
+      if (token === currentCancelToken) { idx++; speakNext(); }
     };
-
     window.speechSynthesis.speak(utterance);
   }
 

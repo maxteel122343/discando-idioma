@@ -1424,7 +1424,46 @@ export default function App() {
           {!isMusicMode && !isEbookMode && !isReviewMode ? (
             /* Home Dashboard Summary */
             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-xl space-y-6 w-full flex-1 flex flex-col justify-center animate-fade-in">
-              {/* Welcome section, stats grid hidden per user request */}
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-4 w-full">
+                {/* Level / XP */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
+                  <Trophy size={20} className="mx-auto text-amber-500" />
+                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Nível Atual</div>
+                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">Level {Math.floor(totalXp / 100) + 1}</div>
+                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">{totalXp % 100}/100 XP</div>
+                </div>
+                {/* Frases */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
+                  <CheckCircle size={20} className="mx-auto text-emerald-500" />
+                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Frases Concluídas</div>
+                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">{completedSentenceIds.length} Frases</div>
+                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Treinos Gerais</div>
+                </div>
+                {/* Músicas */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
+                  <Music size={20} className="mx-auto text-indigo-500" />
+                  <div className="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Músicas Concluídas</div>
+                  <div className="text-lg font-black text-slate-800 dark:text-slate-200">
+                    {(() => {
+                      const completedSongs = musicSongs.filter(song => {
+                        const saved = localStorage.getItem(`hanzi_dial_completed_music_indices_${song.id}`);
+                        const completedIdxs: number[] = saved ? JSON.parse(saved) : [];
+                        return song.sentences.length > 0 && completedIdxs.length === song.sentences.length;
+                      });
+                      return completedSongs.length;
+                    })()} Músicas
+                  </div>
+                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Playlist Completa</div>
+                </div>
+                {/* Erros */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-3.5 space-y-1.5 shadow-sm text-center">
+                  <AlertTriangle size={20} className="mx-auto text-red-500" />
+                  <div className="text-[10px] font-mono font-black text-red-400 dark:text-red-500 uppercase tracking-widest">Erros de Discagem</div>
+                  <div className="text-lg font-black text-red-600 dark:text-red-450">{dialErrorsCount} Erros</div>
+                  <div className="text-[9px] font-mono text-slate-500 dark:text-slate-450">Erros Detectados</div>
+                </div>
+              </div>
 
               {/* Mode Selectors Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:max-w-xl sm:mx-auto w-full pt-2">
@@ -1734,25 +1773,27 @@ export default function App() {
 
       </main>
 
-      {/* Floating Success Celebration Toast */}
+      {/* Floating Success Celebration Toast - centered overlay */}
       {showCelebration && celebratedSentence && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 p-4 rounded-2xl bg-[#120E25] text-white dark:bg-slate-900 shadow-2xl border-2 border-indigo-500/80 flex flex-col sm:flex-row items-center gap-4 animate-slide-up max-w-[90%] sm:max-w-md">
-          <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0 text-xl shadow-inner border border-indigo-500/40">
-            {isReviewMode ? '🔁' : '🎉'}
-          </div>
-          <div className="flex-1 min-w-0 text-center sm:text-left">
-            <h5 className="text-xs font-mono font-bold tracking-widest text-orange-400 uppercase mb-0.5">
-              {isReviewMode ? 'Frase Revisada! (+15 XP)' : 'Frase Desbloqueada! (+15 XP)'}
-            </h5>
-            <h3 className="text-xl font-black font-sans tracking-wide text-white">
-              {joinSentence(celebratedSentence.characters)}
-            </h3>
-            <p className="text-[12px] font-bold text-indigo-300 mt-0.5">
-              {celebratedSentence.pinyin}
-            </p>
-            <p className="text-[11px] text-slate-300 mt-0.5 truncate">
-              {celebratedSentence.translation}
-            </p>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
+          <div className="pointer-events-auto bg-[#120E25] text-white dark:bg-slate-900 shadow-2xl border-2 border-indigo-500/80 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4 animate-slide-up w-full max-w-sm mx-auto">
+            <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0 text-xl shadow-inner border border-indigo-500/40">
+              {isReviewMode ? '🔁' : '🎉'}
+            </div>
+            <div className="flex-1 min-w-0 text-center sm:text-left">
+              <h5 className="text-xs font-mono font-bold tracking-widest text-orange-400 uppercase mb-0.5">
+                {isReviewMode ? 'Frase Revisada! (+15 XP)' : 'Frase Desbloqueada! (+15 XP)'}
+              </h5>
+              <h3 className="text-xl font-black font-sans tracking-wide text-white">
+                {joinSentence(celebratedSentence.characters)}
+              </h3>
+              <p className="text-[12px] font-bold text-indigo-300 mt-0.5">
+                {celebratedSentence.pinyin}
+              </p>
+              <p className="text-[11px] text-slate-300 mt-0.5 truncate">
+                {celebratedSentence.translation}
+              </p>
+            </div>
           </div>
         </div>
       )}
