@@ -477,10 +477,20 @@ export default function App() {
 
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
 
-  // ── Expanded Canvas & Karaoke state ─────────────────────────────────────────
   // isExpandedCanvas: expands the dialer canvas section + shows lyrics strip below
-  const [isExpandedCanvas, setIsExpandedCanvas] = useState(false);
+  const [isExpandedCanvas, setIsExpandedCanvas] = useState(true);
   const [wordRainTrigger, setWordRainTrigger] = useState(0);
+
+  // Sync initial song language on mount when in music mode
+  useEffect(() => {
+    if (isMusicMode) {
+      const activeTrack = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+      if (activeTrack) {
+        const targetLangId = getLanguageIdFromSong(activeTrack.language);
+        setSelectedLanguageId(targetLangId);
+      }
+    }
+  }, [isMusicMode, activeSongId, musicSongs]);
 
   // Auto-advance lyrics timer — fires every 30s when music is playing
   const autoAdvanceRef = useRef<ReturnType<typeof setInterval> | null>(null);
