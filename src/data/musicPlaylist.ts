@@ -296,85 +296,736 @@ export const PRESET_SONGS: SongTrack[] = [
     ]
   },
   {
-    id: 'song-tian-mimi',
-    title: '甜蜜蜜 (Tian Mi Mi)',
-    artist: 'Teresa Teng (邓丽君)',
-    coverEmoji: '🍯',
-    coverGradient: 'from-amber-400 to-rose-400',
-    language: 'Chinês Mandarim',
-    isHidden: true, // Prototype/test song — hidden from UI
+    id: 'song-formidable',
+    title: 'Formidable',
+    artist: 'Stromae',
+    coverEmoji: '🍷',
+    coverGradient: 'from-amber-700 to-red-900',
+    language: 'Francês',
+    audioUrl: '/(melody.az) 225 - Formidable.mp3',
     sentences: [
       {
-        id: 'tm-1',
-        characters: ['甜蜜蜜', '你', '笑', '得', '甜蜜蜜'],
-        pinyin: 'Tián mìmì nǐ xiào de tián mìmì.',
-        translation: 'Doce como mel, você sorri tão docemente.',
-        category: 'Música',
-        difficulty: 'Fácil',
-        explanation: '甜蜜蜜 (doce como mel) + 你 (você) + 笑得 (sorri de forma) + 甜蜜蜜 (muito doce).'
-      },
-      {
-        id: 'tm-2',
-        characters: ['好像', '花儿', '开', '在', '春风', '里'],
-        pinyin: 'Hǎoxiàng huāer kāi zài chūnfēng lǐ.',
-        translation: 'Parece uma flor desabrochando na brisa da primavera.',
+        id: 'for-1',
+        characters: ['Tu', 'étais', 'formidable', 'j\'étais', 'fort', 'minable'],
+        pinyin: 'tu etais formidable j\'etais fort minable',
+        translation: 'Você era formidável, eu era muito lamentável.',
         category: 'Música',
         difficulty: 'Médio',
-        explanation: '好像 (parece) + 花儿 (flor) + 开在 (desabrochar em) + 春风里 (na brisa da primavera).'
+        explanation: 'Étais é o imperfeito do verbo être (ser/estar). Minable significa lamentável, insignificante ou miserável.'
       },
       {
-        id: 'tm-3',
-        characters: ['在', '哪里', '在', '哪里', '见过', '你'],
-        pinyin: 'Zài nǎlǐ zài nǎlǐ jiànguò nǐ.',
-        translation: 'Onde foi, onde foi que eu já te vi?',
+        id: 'for-2',
+        characters: ['Nous', 'étions', 'formidables'],
+        pinyin: 'nous etions formidables',
+        translation: 'Nós éramos formidáveis.',
         category: 'Música',
         difficulty: 'Fácil',
-        explanation: '在哪里 (onde) + 见过 (já ter visto) + 你 (você).'
+        explanation: 'Étions é o imperfeito do verbo être na primeira pessoa do plural (nós éramos/estávamos).'
       },
       {
-        id: 'tm-4',
-        characters: ['你', '的', '笑容', '这样', '熟悉'],
-        pinyin: 'Nǐ de xiàoróng zhèyàng shúxī.',
-        translation: 'Seu sorriso é tão familiar.',
+        id: 'for-3',
+        characters: ['J\'vais', 'pas', 'vous', 'draguer', 'promis', 'juré'],
+        pinyin: 'j\'vais pas vous draguer promis jure',
+        translation: 'Eu não vou dar em cima de você, prometido e jurado.',
         category: 'Música',
         difficulty: 'Médio',
-        explanation: '你的 (seu) + 笑容 (sorriso) + 这样 (assim/tão) + 熟悉 (familiar).'
+        explanation: 'Draguer é uma gíria francesa muito comum que significa paquerar ou xavecar.'
       },
       {
-        id: 'tm-5',
-        characters: ['我', '一时', '想', '不', '起'],
-        pinyin: 'Wǒ yīshí xiǎng bù qǐ.',
-        translation: 'Por um momento não consigo me lembrar.',
-        category: 'Música',
-        difficulty: 'Médio',
-        explanation: '我 (eu) + 一时 (por um momento) + 想不起 (não consigo lembrar).'
-      },
-      {
-        id: 'tm-6',
-        characters: ['啊', '在', '梦里'],
-        pinyin: 'A, zài mèng lǐ.',
-        translation: 'Ah, foi num sonho!',
+        id: 'for-4',
+        characters: ['J\'suis', 'célibataire', 'depuis', 'hier'],
+        pinyin: 'j\'suis celibataire depuis hier',
+        translation: 'Estou solteiro desde ontem.',
         category: 'Música',
         difficulty: 'Fácil',
-        explanation: '在 (em) + 梦里 (no sonho).'
+        explanation: 'Célibataire significa solteiro(a). Depuis significa desde.'
       },
       {
-        id: 'tm-7',
-        characters: ['梦里', '梦里', '见过', '你'],
-        pinyin: 'Mèng lǐ mèng lǐ jiànguò nǐ.',
-        translation: 'Num sonho, num sonho eu vi você.',
-        category: 'Música',
-        difficulty: 'Fácil',
-        explanation: '梦里 (no sonho) + 见过你 (já vi você).'
-      },
-      {
-        id: 'tm-8',
-        characters: ['甜美', '的', '笑容', '这', '是', '你'],
-        pinyin: 'Tiánměi de xiàoróng zhè shì nǐ.',
-        translation: 'Aquele sorriso doce, era você!',
+        id: 'for-5',
+        characters: ['Tu', 't\'es', 'regardé', 'tu', 't\'crois', 'beau'],
+        pinyin: 'tu t\'es regarde tu t\'crois beau',
+        translation: 'Você já se olhou? Você se acha bonito?',
         category: 'Música',
         difficulty: 'Médio',
-        explanation: '甜美的 (doce) + 笑容 (sorriso) + 这是你 (era você).'
+        explanation: 'T\'crois é a contração de te crois (se acha/se acredita). Beau significa belo ou bonito.'
+      },
+      {
+        id: 'for-6',
+        characters: ['Elle', 'va', 't\'larguer', 'comme', 'elles', 'le', 'font'],
+        pinyin: 'elle va t\'larguer comme elles le font',
+        translation: 'Ela vai te largar como elas fazem.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Larguer é um verbo informal que significa abandonar ou dar um fora em alguém.'
+      },
+      {
+        id: 'for-7',
+        characters: ['Dans', 'la', 'vie', 'y\'a', 'ni', 'méchant', 'ni', 'gentil'],
+        pinyin: 'dans la vie y\'a ni mechant ni gentil',
+        translation: 'Na vida não há nem vilão nem bonzinho.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Y\'a é a contração falada de il y a (existe/há). Ni... ni significa nem... nem.'
+      }
+    ]
+  },
+  {
+    id: 'song-lavieenrose',
+    title: 'La Vie En Rose',
+    artist: 'Édith Piaf',
+    coverEmoji: '🌹',
+    coverGradient: 'from-pink-500 via-rose-600 to-red-700',
+    language: 'Francês',
+    audioUrl: '/(melody.az) 878 - La Vie En Rose.mp3',
+    sentences: [
+      {
+        id: 'lvr-1',
+        characters: ['Quand', 'il', 'me', 'prend', 'dans', 'ses', 'bras'],
+        pinyin: 'quand il me prend dans ses bras',
+        translation: 'Quando ele me pega nos seus braços.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Quand significa quando. Prend é o verbo prendre (pegar/tomar) no presente.'
+      },
+      {
+        id: 'lvr-2',
+        characters: ['Qu\'il', 'me', 'parle', 'tout', 'bas'],
+        pinyin: 'qu\'il me parle tout bas',
+        translation: 'Quando ele me fala bem baixinho.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Tout bas é uma expressão adverbial que significa muito baixo ou num sussurro.'
+      },
+      {
+        id: 'lvr-3',
+        characters: ['Je', 'vois', 'la', 'vie', 'en', 'rose'],
+        pinyin: 'je vois la vie en rose',
+        translation: 'Eu vejo a vida em cor-de-rosa (com otimismo).',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Vois é do verbo voir (ver). La vie en rose significa figurativamente enxergar o lado bom de tudo.'
+      },
+      {
+        id: 'lvr-4',
+        characters: ['Il', 'me', 'dit', 'des', 'mots', 'd\'amour'],
+        pinyin: 'il me dit des mots d\'amour',
+        translation: 'Ele me diz palavras de amor.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Dit é do verbo dire (dizer). Mots significa palavras.'
+      },
+      {
+        id: 'lvr-5',
+        characters: ['Des', 'mots', 'de', 'tous', 'les', 'jours'],
+        pinyin: 'des mots de tous les jours',
+        translation: 'Palavras do cotidiano / de todos os dias.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Tous les jours significa diariamente ou todos os dias.'
+      },
+      {
+        id: 'lvr-6',
+        characters: ['Et', 'ça', 'me', 'fait', 'quelque', 'chose'],
+        pinyin: 'et ca me fait quelque chose',
+        translation: 'E isso mexe comigo / me faz sentir algo.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Fait quelque chose é uma expressão que indica comoção ou impacto emocional.'
+      },
+      {
+        id: 'lvr-7',
+        characters: ['C\'est', 'lui', 'pour', 'moi', 'moi', 'pour', 'lui', 'dans', 'la', 'vie'],
+        pinyin: 'c\'est lui pour moi moi pour lui dans la vie',
+        translation: 'É ele para mim, eu para ele na vida.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Moi pour lui (eu para ele). Dans la vie (na vida).'
+      }
+    ]
+  },
+  {
+    id: 'song-smoothcriminal',
+    title: 'Smooth Criminal',
+    artist: 'Michael Jackson',
+    coverEmoji: '🕴️',
+    coverGradient: 'from-slate-750 via-slate-800 to-indigo-950',
+    language: 'Inglês',
+    audioUrl: '/(melody.az) 7515 - Smooth Criminal.mp3',
+    sentences: [
+      {
+        id: 'sc-1',
+        characters: ['As', 'he', 'came', 'into', 'the', 'window'],
+        pinyin: 'as he came into the window',
+        translation: 'Conforme ele entrava pela janela.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Came é o passado de come (vir/entrar). Into indica movimento para dentro.'
+      },
+      {
+        id: 'sc-2',
+        characters: ['Was', 'a', 'sound', 'of', 'a', 'crescendo'],
+        pinyin: 'was a sound of a crescendo',
+        translation: 'Houve um som de um crescendo (aumento gradual de volume).',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Crescendo refere-se ao aumento de intensidade sonora na música.'
+      },
+      {
+        id: 'sc-3',
+        characters: ['He', 'came', 'into', 'her', 'apartment'],
+        pinyin: 'he came into her apartment',
+        translation: 'Ele entrou no apartamento dela.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Her é o pronome possessivo feminino (dela).'
+      },
+      {
+        id: 'sc-4',
+        characters: ['He', 'left', 'the', 'bloodstains', 'on', 'the', 'carpet'],
+        pinyin: 'he left the bloodstains on the carpet',
+        translation: 'Ele deixou as manchas de sangue no tapete.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Left é o passado de leave (deixar). Bloodstains (manchas de sangue). Carpet (tapete).'
+      },
+      {
+        id: 'sc-5',
+        characters: ['She', 'ran', 'underneath', 'the', 'table'],
+        pinyin: 'she ran underneath the table',
+        translation: 'Ela correu para debaixo da mesa.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Ran é o passado de run (correr). Underneath significa sob ou debaixo de.'
+      },
+      {
+        id: 'sc-6',
+        characters: ['Annie', 'are', 'you', 'okay'],
+        pinyin: 'annie are you okay',
+        translation: 'Annie, você está bem?',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Okay (abreviação de OK) significa bem ou certo.'
+      },
+      {
+        id: 'sc-7',
+        characters: ['You\'ve', 'been', 'hit', 'by', 'a', 'smooth', 'criminal'],
+        pinyin: 'you\'ve been hit by a smooth criminal',
+        translation: 'Você foi atingida por um criminoso sutil/sorrateiro.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'You\'ve been hit (você foi atingida). Smooth criminal refere-se a um criminoso elegante/sutil.'
+      }
+    ]
+  },
+  {
+    id: 'song-theydontcare',
+    title: "They Don't Care About Us",
+    artist: 'Michael Jackson',
+    coverEmoji: '🗣️',
+    coverGradient: 'from-blue-600 to-slate-900',
+    language: 'Inglês',
+    audioUrl: "/Michel_Jackson_-_They_don_t_really_care_about_us_1995_(mp3.pm).mp3",
+    sentences: [
+      {
+        id: 'tdc-1',
+        characters: ['Everybody', 'gone', 'bad'],
+        pinyin: 'everybody gone bad',
+        translation: 'Todo mundo ficou mau.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Everybody (todo mundo). Gone bad é uma expressão para descrever que as coisas ou pessoas se deterioraram/ficaram ruins.'
+      },
+      {
+        id: 'tdc-2',
+        characters: ['All', 'I', 'wanna', 'say', 'is', 'that'],
+        pinyin: 'all i wanna say is that',
+        translation: 'Tudo o que eu quero dizer é que.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Wanna é a contração informal de want to (querer).'
+      },
+      {
+        id: 'tdc-3',
+        characters: ['They', 'don\'t', 'really', 'care', 'about', 'us'],
+        pinyin: 'they don\'t really care about us',
+        translation: 'Eles realmente não se importam conosco.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Care about significa importar-se com algo/alguém.'
+      },
+      {
+        id: 'tdc-4',
+        characters: ['Beat', 'me', 'hate', 'me', 'you', 'can', 'never', 'break', 'me'],
+        pinyin: 'beat me hate me you can never break me',
+        translation: 'Bata em mim, odeie-me, você nunca poderá me quebrar.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Beat (bater/derrotar). Break (quebrar/destruir).'
+      },
+      {
+        id: 'tdc-5',
+        characters: ['I', 'am', 'the', 'victim', 'of', 'police', 'brutality'],
+        pinyin: 'i am the victim of police brutality',
+        translation: 'Eu sou a vítima de brutalidade policial.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Victim (vítima). Police brutality (brutalidade/violência policial).'
+      },
+      {
+        id: 'tdc-6',
+        characters: ['I\'m', 'tired', 'of', 'being', 'the', 'victim', 'of', 'hate'],
+        pinyin: 'i\'m tired of being the victim of hate',
+        translation: 'Estou cansado de ser a vítima do ódio.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Tired of being (cansado de ser). Hate (ódio).'
+      }
+    ]
+  },
+  {
+    id: 'song-wakawaka',
+    title: 'Waka Waka',
+    artist: 'Shakira',
+    coverEmoji: '⚽',
+    coverGradient: 'from-yellow-400 via-orange-500 to-red-500',
+    language: 'Inglês',
+    audioUrl: '/(melody.az) 2955 - Waka Waka.mp3',
+    sentences: [
+      {
+        id: 'ww-1',
+        characters: ['You\'re', 'a', 'good', 'soldier', 'choosing', 'your', 'battles'],
+        pinyin: 'you\'re a good soldier choosing your battles',
+        translation: 'Você é um bom soldado escolhendo suas batalhas.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Soldier (soldado). Choosing é o gerúndio de choose (escolher). Battles (batalhas).'
+      },
+      {
+        id: 'ww-2',
+        characters: ['Pick', 'yourself', 'up', 'and', 'dust', 'yourself', 'off'],
+        pinyin: 'pick yourself up and dust yourself off',
+        translation: 'Levante-se e sacuda a poeira.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Pick yourself up (levante-se / recupere-se). Dust yourself off (sacuda a poeira).'
+      },
+      {
+        id: 'ww-3',
+        characters: ['You\'re', 'on', 'the', 'front', 'line'],
+        pinyin: 'you\'re on the front line',
+        translation: 'Você está na linha de frente.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Front line refere-se à zona de combate ou linha de frente.'
+      },
+      {
+        id: 'ww-4',
+        characters: ['Everyone\'s', 'watching'],
+        pinyin: 'everyone\'s watching',
+        translation: 'Todo mundo está assistindo/olhando.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Everyone\'s é a contração de everyone is (todo mundo está). Watching (assistindo).'
+      },
+      {
+        id: 'ww-5',
+        characters: ['When', 'you', 'fall', 'get', 'up'],
+        pinyin: 'when you fall get up',
+        translation: 'Quando você cair, levante-se.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Fall (cair). Get up (levantar-se).'
+      },
+      {
+        id: 'ww-6',
+        characters: ['This', 'time', 'for', 'Africa'],
+        pinyin: 'this time for africa',
+        translation: 'Desta vez pela África.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'This time significa desta vez.'
+      }
+    ]
+  },
+  {
+    id: 'song-latortura',
+    title: 'La Tortura',
+    artist: 'Shakira (feat. Alejandro Sanz)',
+    coverEmoji: '🥀',
+    coverGradient: 'from-amber-800 via-yellow-750 to-red-800',
+    language: 'Espanhol',
+    audioUrl: '/(melody.az) 2955 - La Tortura (feat Alejandro Sanz).mp3',
+    sentences: [
+      {
+        id: 'lt-1',
+        characters: ['Ay', 'panita', 'mía', 'guárdate', 'la', 'poesía'],
+        pinyin: 'ay panita mia guardate la poesia',
+        translation: 'Ai, minha amiguinha, guarde a poesia.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Panita é um termo afetuoso muito comum no espanhol latino (Venezuela/Colômbia) para amigo(a). Guárdate (guarde para si).'
+      },
+      {
+        id: 'lt-2',
+        characters: ['Guárdate', 'la', 'alegría', 'pa\'', 'ti'],
+        pinyin: 'guardate la alegria pa\' ti',
+        translation: 'Guarde a alegria para você.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Pa\' ti é a contração informal e falada de para ti (para você).'
+      },
+      {
+        id: 'lt-3',
+        characters: ['No', 'pido', 'que', 'todos', 'los', 'días', 'sean', 'de', 'Sol'],
+        pinyin: 'no pido que todos los dias sean de sol',
+        translation: 'Não peço que todos os dias sejam de Sol.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Pido é a primeira pessoa do singular do verbo pedir (yo pido - eu peço). Sol (sol).'
+      },
+      {
+        id: 'lt-4',
+        characters: ['No', 'solo', 'de', 'pan', 'vive', 'el', 'hombre'],
+        pinyin: 'no solo de pan vive el hombre',
+        translation: 'Não só de pão vive o homem.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Pan (pão). Vive (vive). Hombre (homem).'
+      },
+      {
+        id: 'lt-5',
+        characters: ['Ay', 'amor', 'fue', 'una', 'tortura', 'perderte'],
+        pinyin: 'ay amor fue una tortura perderte',
+        translation: 'Ai amor, foi uma tortura te perder.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Fue é o passado simples do verbo ser/ir. Perderte significa perder você.'
+      },
+      {
+        id: 'lt-6',
+        characters: ['Solo', 'de', 'errores', 'se', 'aprende'],
+        pinyin: 'solo de errores se aprende',
+        translation: 'Apenas com erros se aprende.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Solo (apenas/só). Errores (erros). Se aprende (aprende-se).'
+      }
+    ]
+  },
+  {
+    id: 'song-saveme',
+    title: 'Save Me',
+    artist: 'Remy Zero',
+    coverEmoji: '🦸',
+    coverGradient: 'from-blue-650 via-indigo-700 to-slate-900',
+    language: 'Inglês',
+    audioUrl: '/Smallvile_Remy_Zero_-_Save_Me_(mp3.pm).mp3',
+    sentences: [
+      {
+        id: 'sm-1',
+        characters: ['I', 'feel', 'my', 'wings', 'have', 'broken', 'in', 'your', 'hands'],
+        pinyin: 'i feel my wings have broken in your hands',
+        translation: 'Sinto que minhas asas quebraram em suas mãos.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-2',
+        characters: ['I', 'feel', 'the', 'words', 'unspoken', 'inside'],
+        pinyin: 'i feel the words unspoken inside',
+        translation: 'Sinto as palavras não ditas aqui dentro.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-3',
+        characters: ['And', 'they', 'pull', 'you', 'under'],
+        pinyin: 'and they pull you under',
+        translation: 'E elas te puxam para baixo.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-4',
+        characters: ['And', 'I', 'will', 'give', 'you', 'anything', 'you', 'want', 'you', 'know'],
+        pinyin: 'and i will give you anything you want you know',
+        translation: 'E eu te darei tudo o que você quiser, você sabe.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-5',
+        characters: ['You', 'are', 'all', 'I', 'wanted'],
+        pinyin: 'you are all i wanted',
+        translation: 'Você é tudo o que eu queria.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-6',
+        characters: ['All', 'my', 'dreams', 'are', 'falling', 'down'],
+        pinyin: 'all my dreams are falling down',
+        translation: 'Todos os meus sonhos estão desmoronando.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-7',
+        characters: ['Crawling', 'around', 'around'],
+        pinyin: 'crawling around around',
+        translation: 'Rastejando ao redor, ao redor.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-8',
+        characters: ['Somebody', 'save', 'me'],
+        pinyin: 'somebody save me',
+        translation: 'Alguém me salve.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-9',
+        characters: ['Let', 'your', 'warm', 'hands', 'break', 'right', 'through'],
+        pinyin: 'let your warm hands break right through',
+        translation: 'Deixe suas mãos quentes atravessarem direto.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-10',
+        characters: ['Somebody', 'save', 'me'],
+        pinyin: 'somebody save me',
+        translation: 'Alguém me salve.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-11',
+        characters: ['I', 'don\'t', 'care', 'how', 'you', 'do', 'it'],
+        pinyin: 'i don\'t care how you do it',
+        translation: 'Não me importo com como você faz isso.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-12',
+        characters: ['Just', 'stay', 'stay', 'come', 'on'],
+        pinyin: 'just stay stay come on',
+        translation: 'Apenas fique, fique, vamos lá.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-13',
+        characters: ['I\'ve', 'been', 'waiting', 'for', 'you'],
+        pinyin: 'i\'ve been waiting for you',
+        translation: 'Estive esperando por você.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-14',
+        characters: ['I', 'see', 'the', 'world', 'has', 'folded', 'in', 'your', 'heart'],
+        pinyin: 'i see the world has folded in your heart',
+        translation: 'Vejo que o mundo se dobrou no seu coração.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-15',
+        characters: ['I', 'feel', 'the', 'waves', 'crash', 'down', 'inside'],
+        pinyin: 'i feel the waves crash down inside',
+        translation: 'Sinto as ondas quebrarem aqui dentro.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-16',
+        characters: ['And', 'they', 'pull', 'me', 'under'],
+        pinyin: 'and they pull me under',
+        translation: 'E elas me puxam para baixo.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-17',
+        characters: ['I', 'will', 'give', 'you', 'anything', 'you', 'want', 'you', 'know'],
+        pinyin: 'i will give you anything you want you know',
+        translation: 'Eu te darei tudo o que você quiser, você sabe.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-18',
+        characters: ['You', 'are', 'all', 'I', 'wanted'],
+        pinyin: 'you are all i wanted',
+        translation: 'Você é tudo o que eu queria.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-19',
+        characters: ['All', 'my', 'dreams', 'have', 'fallen', 'down'],
+        pinyin: 'all my dreams have fallen down',
+        translation: 'Todos os meus sonhos desmoronaram.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-20',
+        characters: ['Crawling', 'around', 'around'],
+        pinyin: 'crawling around around',
+        translation: 'Rastejando ao redor, ao redor.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-21',
+        characters: ['Somebody', 'save', 'me'],
+        pinyin: 'somebody save me',
+        translation: 'Alguém me salve.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-22',
+        characters: ['Let', 'your', 'warm', 'hands', 'break', 'right', 'through'],
+        pinyin: 'let your warm hands break right through',
+        translation: 'Deixe suas mãos quentes atravessarem direto.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-23',
+        characters: ['Somebody', 'save', 'me'],
+        pinyin: 'somebody save me',
+        translation: 'Alguém me salve.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-24',
+        characters: ['I', 'don\'t', 'care', 'how', 'you', 'do', 'it'],
+        pinyin: 'i don\'t care how you do it',
+        translation: 'Não me importo com como você faz isso.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-25',
+        characters: ['Just', 'stay', 'stay', 'come', 'on'],
+        pinyin: 'just stay stay come on',
+        translation: 'Apenas fique, fique, vamos lá.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-26',
+        characters: ['I\'ve', 'been', 'waiting', 'for', 'you'],
+        pinyin: 'i\'ve been waiting for you',
+        translation: 'Estive esperando por você.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-27',
+        characters: ['All', 'my', 'dreams', 'are', 'on', 'the', 'ground'],
+        pinyin: 'all my dreams are on the ground',
+        translation: 'Todos os meus sonhos estão no chão.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-28',
+        characters: ['Crawling', 'around', 'around'],
+        pinyin: 'crawling around around',
+        translation: 'Rastejando ao redor, ao redor.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-29',
+        characters: ['Somebody', 'save', 'me'],
+        pinyin: 'somebody save me',
+        translation: 'Alguém me salve.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-30',
+        characters: ['Let', 'your', 'warm', 'hands', 'break', 'right', 'through'],
+        pinyin: 'let your warm hands break right through',
+        translation: 'Deixe suas mãos quentes atravessarem direto.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-31',
+        characters: ['Somebody', 'save', 'me'],
+        pinyin: 'somebody save me',
+        translation: 'Alguém me salve.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-32',
+        characters: ['I', 'don\'t', 'care', 'how', 'you', 'do', 'it'],
+        pinyin: 'i don\'t care how you do it',
+        translation: 'Não me importo com como você faz isso.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-33',
+        characters: ['Just', 'stay', 'with', 'me'],
+        pinyin: 'just stay with me',
+        translation: 'Apenas fique comigo.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gramática de música.'
+      },
+      {
+        id: 'sm-36',
+        characters: ['I\'m', 'still', 'waiting', 'for', 'you'],
+        pinyin: 'i\'m still waiting for you',
+        translation: 'Eu ainda continuo esperando por você.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gramática de música.'
       }
     ]
   },

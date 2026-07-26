@@ -1134,6 +1134,11 @@ export default function App() {
     if (seq.length > activeSequence.length) {
       const added = seq.length - activeSequence.length;
       setTotalXp((prev) => prev + added * 2);
+      
+      // Auto-start music playback instantly on dialing the first word/character
+      if (isMusicMode && !isMusicPlaying && seq.length > 0) {
+        setIsMusicPlaying(true);
+      }
     }
     setActiveSequence(seq);
     setActiveWordIds(wordIds);
