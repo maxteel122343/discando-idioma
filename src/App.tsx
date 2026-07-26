@@ -8,6 +8,8 @@ import InstructionsModal from './components/InstructionsModal';
 import AIVoiceAssistantCard from './components/AIVoiceAssistantCard';
 import MusicVitrine from './components/MusicVitrine';
 import CelebrationToast from './components/CelebrationToast';
+import LyricsKaraokePanel from './components/LyricsKaraokePanel';
+import WordRainOverlay from './components/WordRainOverlay';
 import { SENTENCES } from './data/sentences';
 import { LANGUAGES, LanguageConfig } from './data/languages';
 import { PRESET_SONGS, SongTrack } from './data/musicPlaylist';
@@ -45,7 +47,9 @@ import {
   SkipForward,
   Hand,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 const PRELOADED_BOOKS: Record<string, { name: string; sentences: Sentence[] }> = {
@@ -471,6 +475,50 @@ export default function App() {
   });
 
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
+
+  // ── Fullscreen & Karaoke state ─────────────────────────────────────────────
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [wordRainTrigger, setWordRainTrigger] = useState(0);
+
+  useEffect(() => {
+    const onFSChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFSChange);
+    return () => document.removeEventListener('fullscreenchange', onFSChange);
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  // Auto-advance lyrics timer — fires every 30s when music is playing
+  const autoAdvanceRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (autoAdvanceRef.current) clearInterval(autoAdvanceRef.current);
+    if (!isMusicPlaying || !isMusicMode) return;
+    autoAdvanceRef.current = setInterval(() => {
+      setActiveMusicSentenceIndex(prev => {
+        const song = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+        const next = Math.min(prev + 1, (song?.sentences.length ?? 1) - 1);
+        if (next !== prev) setWordRainTrigger(t => t + 1);
+        return next;
+      });
+    }, 30000);
+    return () => { if (autoAdvanceRef.current) clearInterval(autoAdvanceRef.current); };
+  }, [isMusicPlaying, isMusicMode, activeSongId, musicSongs]);
+
+  // Trigger word rain whenever active sentence changes in music mode
+  const prevMusicIdxRef = useRef(activeMusicSentenceIndex);
+  useEffect(() => {
+    if (isMusicMode && activeMusicSentenceIndex !== prevMusicIdxRef.current) {
+      setWordRainTrigger(t => t + 1);
+      prevMusicIdxRef.current = activeMusicSentenceIndex;
+    }
+  }, [activeMusicSentenceIndex, isMusicMode]);
+  // ───────────────────────────────────────────────────────────────────────────
   const [dialErrorsCount, setDialErrorsCount] = useState<number>(() => {
     const saved = localStorage.getItem('hanzi_dial_dial_errors_count');
     return saved ? parseInt(saved, 10) : 0;
@@ -1202,6 +1250,17 @@ export default function App() {
               </button>
             )}
 
+            {/* Fullscreen toggle — visible in music mode */}
+            {isMusicMode && (
+              <button
+                onClick={() => { playTick(); handleToggleFullscreen(); }}
+                className="flex items-center justify-center p-2 rounded-full bg-slate-50 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all active:scale-95 cursor-pointer"
+                title={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia (modo karaoke)'}
+              >
+                {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+              </button>
+            )}
+
             {/* Config Gear Button - Desktop only, mobile uses bottom nav */}
             <button
               onClick={() => { playTick(); setIsSettingsOpen(true); }}
@@ -1548,12 +1607,29 @@ export default function App() {
             />
           )}
 
+          {/* ── Word Rain Overlay (portal, fullscreen music mode) ────────────── */}
+          {isMusicMode && (() => {
+            const activeSong = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+            const activeSentence = activeSong?.sentences[activeMusicSentenceIndex] || null;
+            return (
+              <WordRainOverlay
+                sentence={activeSentence}
+                trigger={wordRainTrigger}
+                isActive={isMusicMode && isMusicPlaying}
+              />
+            );
+          })()}
+
           {/* Active Song Lyrics (Legendas) below the Dialer Canvas */}
           {isMusicMode && (() => {
             const currentSong = musicSongs.find((s) => s.id === activeSongId) || musicSongs[0];
             const sentences = currentSong?.sentences || [];
             return (
-              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-4 shadow-lg space-y-3 w-full">
+              <div className={`relative w-full transition-all duration-500 ${
+                isFullscreen
+                  ? 'hidden' // hidden in fullscreen — lyrics show overlaid on right
+                  : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-4 shadow-lg space-y-3'
+              }`}>
                 <div className="flex items-center justify-between border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
                   <div className="flex items-center gap-2.5">
                     <span className="text-xl">🎵</span>
@@ -1776,6 +1852,42 @@ export default function App() {
         )}
 
       </main>
+
+      {/* ── Fullscreen Karaoke Lyrics Overlay ─────────────────────────────── */}
+      {isFullscreen && isMusicMode && (() => {
+        const currentSong = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+        const sentences = currentSong?.sentences || [];
+        return (
+          <>
+            {/* Exit fullscreen shortcut button */}
+            <button
+              onClick={handleToggleFullscreen}
+              className="fixed top-4 right-4 z-[200] p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/80 hover:text-white hover:bg-black/60 transition-all cursor-pointer shadow-xl"
+              title="Sair da tela cheia"
+            >
+              <Minimize2 size={16} />
+            </button>
+
+            {/* Lyrics panel — right 32%, transparent float */}
+            <div
+              className="fixed right-0 top-0 bottom-0 z-[100] w-[32vw] max-w-xs pointer-events-auto"
+              style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 80%, transparent 100%)' }}
+            >
+              <LyricsKaraokePanel
+                sentences={sentences}
+                activeIndex={activeMusicSentenceIndex}
+                onSelectIndex={(idx) => {
+                  setActiveMusicSentenceIndex(idx);
+                  setWordRainTrigger(t => t + 1);
+                }}
+                songTitle={currentSong?.title || ''}
+                songArtist={currentSong?.artist || ''}
+                completedIndices={completedMusicSentenceIndices}
+              />
+            </div>
+          </>
+        );
+      })()}
 
       {/* Celebration Toast - rendered via React Portal to avoid parent transform clipping */}
       <CelebrationToast
