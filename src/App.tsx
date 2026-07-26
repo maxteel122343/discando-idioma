@@ -1013,7 +1013,7 @@ export default function App() {
       }
 
       setCelebratedSentence(sentence);
-      setShowCelebration(true);
+      // setShowCelebration(true); // Ocultado por solicitação do usuário
 
       setTimeout(() => {
         setShowCelebration(false);
@@ -1022,7 +1022,7 @@ export default function App() {
           setActiveMusicSentenceIndex(nextIndex);
           handleClearSequence();
         }
-      }, 4000);
+      }, 1200); // reduced delay since modal is hidden
       return;
     }
 
@@ -1053,7 +1053,7 @@ export default function App() {
       }
 
       setCelebratedSentence(sentence);
-      setShowCelebration(true);
+      // setShowCelebration(true); // Ocultado por solicitação do usuário
 
       setTimeout(() => {
         setShowCelebration(false);
@@ -1062,7 +1062,7 @@ export default function App() {
           setActiveEbookIndex(nextIndex);
           handleClearSequence();
         }
-      }, 4500);
+      }, 1200); // reduced delay since modal is hidden
       return;
     }
 
@@ -1078,12 +1078,12 @@ export default function App() {
       }
 
       setCelebratedSentence(sentence);
-      setShowCelebration(true);
+      // setShowCelebration(true); // Ocultado por solicitação do usuário
 
       setTimeout(() => {
         setShowCelebration(false);
         handleNextReviewSentence();
-      }, 4500);
+      }, 1200); // reduced delay since modal is hidden
       return;
     }
 
@@ -1103,11 +1103,11 @@ export default function App() {
     }
 
     setCelebratedSentence(sentence);
-    setShowCelebration(true);
+    // setShowCelebration(true); // Ocultado por solicitação do usuário
 
     setTimeout(() => {
       setShowCelebration(false);
-    }, 4500);
+    }, 1200); // reduced delay since modal is hidden
   };
 
   // Reset progress handler
@@ -1927,7 +1927,7 @@ export default function App() {
       {/* Settings Overlay Dialog */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative space-y-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl relative space-y-4 custom-scrollbar">
             
             <button
               onClick={() => { playTick(); setIsSettingsOpen(false); }}
