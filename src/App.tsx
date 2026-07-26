@@ -997,9 +997,6 @@ export default function App() {
           }
         }
 
-        setTimeout(() => {
-          alert(`🎉 INCRÍVEL! Você completou toda a música "${activeTrack.title}" do ${activeTrack.artist} e ganhou +100 XP de Bônus!`);
-        }, 1000);
       }
 
       setTotalXp(currentXp);
