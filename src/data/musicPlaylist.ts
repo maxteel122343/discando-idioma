@@ -1213,7 +1213,7 @@ export const PRESET_SONGS: SongTrack[] = [
     coverEmoji: '🧟',
     coverGradient: 'from-red-650 via-red-900 to-black',
     language: 'Inglês',
-    audioUrl: '', // Will default to TTS synth
+    audioUrl: '/Thriller.mp3', // References the mp3 file in the public folder
     sentences: [
       {
         id: 'th-1',
