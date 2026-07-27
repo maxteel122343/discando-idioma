@@ -1150,7 +1150,7 @@ export default function App() {
       }
 
       setCelebratedSentence(sentence);
-      setShowCelebration(true);
+      // setShowCelebration(true); // Ocultado por solicitação do usuário
 
       setTimeout(() => {
         setShowCelebration(false);
@@ -1194,7 +1194,7 @@ export default function App() {
       }
 
       setCelebratedSentence(sentence);
-      setShowCelebration(true);
+      // setShowCelebration(true); // Ocultado por solicitação do usuário
 
       setTimeout(() => {
         setShowCelebration(false);
@@ -1219,7 +1219,7 @@ export default function App() {
       }
 
       setCelebratedSentence(sentence);
-      setShowCelebration(true);
+      // setShowCelebration(true); // Ocultado por solicitação do usuário
 
       setTimeout(() => {
         setShowCelebration(false);
@@ -1244,7 +1244,7 @@ export default function App() {
     }
 
     setCelebratedSentence(sentence);
-    setShowCelebration(true);
+    // setShowCelebration(true); // Ocultado por solicitação do usuário
 
     setTimeout(() => {
       setShowCelebration(false);
