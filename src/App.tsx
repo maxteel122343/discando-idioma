@@ -1542,7 +1542,46 @@ export default function App() {
       {/* Main Content Layout */}
       <main className="flex-1 w-full mx-auto p-2 sm:p-4 pb-20 lg:pb-6 flex flex-col lg:flex-row gap-4 items-stretch overflow-hidden">
         
-        {/* Left Side: Game Canvas & Quick Level selector */}
+        {/* Left Sidebar on PC / Overlay on Mobile */}
+        <div 
+          className={`
+            lg:block flex-shrink-0 z-40
+            ${isSidebarOpenMobile ? 'fixed inset-0 top-16 bg-black/30 backdrop-blur-sm z-50' : 'hidden lg:block'}
+            lg:relative lg:top-0 lg:bg-transparent lg:backdrop-blur-none
+          `}
+          onClick={() => setIsSidebarOpenMobile(false)}
+        >
+          <div 
+            className="h-full w-full max-w-sm mr-auto lg:max-w-none"
+            onClick={(e) => e.stopPropagation()} // stop close on sidebar content click
+          >
+            <Sidebar
+              sentences={activeSentences}
+              completedSentenceIds={completedSentenceIds}
+              activeCategory={currentCategory}
+              onSelectCategory={setCurrentCategory}
+              activeDifficulty={selectedDifficulty}
+              onSelectDifficulty={setSelectedDifficulty}
+              onResetProgress={handleResetProgress}
+              userName={userName}
+              onUpdateUserName={setUserName}
+              isReviewMode={isReviewMode}
+              reviewSentenceId={reviewSentenceId}
+              onStartReview={handleStartReview}
+              onExitReview={handleExitReview}
+              onNextReviewSentence={handleNextReviewSentence}
+              reviewXp={reviewXp}
+              ttsCode={currentLanguage.ttsCode}
+              totalXp={totalXp}
+              completedMusicSentenceIndices={completedMusicSentenceIndices}
+              songTrophies={songTrophies}
+              dialErrorsCount={dialErrorsCount}
+              songs={musicSongs}
+            />
+          </div>
+        </div>
+
+        {/* Right Side (Left Side renamed): Game Canvas & Quick Level selector */}
         <div className="flex-1 flex flex-col gap-4">
           
 
@@ -1985,46 +2024,6 @@ export default function App() {
             isHintEnabled={isHintEnabled}
             isMonochrome={isMonochrome}
           />
-        )}
-
-        {!isMusicMode && !isEbookMode && (
-          <div 
-            className={`
-              lg:block flex-shrink-0 z-40
-              ${isSidebarOpenMobile ? 'fixed inset-0 top-16 bg-black/30 backdrop-blur-sm' : 'hidden'}
-              lg:relative lg:top-0 lg:bg-transparent lg:backdrop-blur-none
-            `}
-            onClick={() => setIsSidebarOpenMobile(false)}
-          >
-            <div 
-              className="h-full w-full max-w-sm ml-auto lg:max-w-none"
-              onClick={(e) => e.stopPropagation()} // stop close on sidebar content click
-            >
-              <Sidebar
-                sentences={activeSentences}
-                completedSentenceIds={completedSentenceIds}
-                activeCategory={currentCategory}
-                onSelectCategory={setCurrentCategory}
-                activeDifficulty={selectedDifficulty}
-                onSelectDifficulty={setSelectedDifficulty}
-                onResetProgress={handleResetProgress}
-                userName={userName}
-                onUpdateUserName={setUserName}
-                isReviewMode={isReviewMode}
-                reviewSentenceId={reviewSentenceId}
-                onStartReview={handleStartReview}
-                onExitReview={handleExitReview}
-                onNextReviewSentence={handleNextReviewSentence}
-                reviewXp={reviewXp}
-                ttsCode={currentLanguage.ttsCode}
-                totalXp={totalXp}
-                completedMusicSentenceIndices={completedMusicSentenceIndices}
-                songTrophies={songTrophies}
-                dialErrorsCount={dialErrorsCount}
-                songs={musicSongs}
-              />
-            </div>
-          </div>
         )}
 
       </main>
