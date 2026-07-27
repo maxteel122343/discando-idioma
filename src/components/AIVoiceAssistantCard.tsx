@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, VolumeX, Mic, MicOff, Sparkles, ChevronDown, RefreshCw, MessageSquare, Bot, Globe } from 'lucide-react';
 import { NATIVE_LANGUAGES, stopTutorSpeech } from '../utils/aiTutorEngine';
-import { speakLanguageText } from '../utils/audio';
+import { speakLanguageText, getAudioContext } from '../utils/audio';
 
 interface AIVoiceAssistantCardProps {
   isEnabled: boolean;
@@ -57,6 +57,9 @@ export default function AIVoiceAssistantCard({
     isHandsFreeRef.current = isHandsFree;
   }, [isHandsFree]);
 
+  // Track if we are currently calling API or speaking to avoid starting mic over our own sound
+  const isProcessingRef = useRef(false);
+
   // Continuous hands-free recognition engine
   useEffect(() => {
     if (!isHandsFree) {
@@ -96,6 +99,8 @@ export default function AIVoiceAssistantCard({
 
         console.log(`%c[Linguo Voice Assistant] Final transcription: "${query}"`, 'color: #8b5cf6; font-weight: bold; font-size: 11px;');
         setSpeechFeedback(`✨ Processando: "${query}"...`);
+        
+        isProcessingRef.current = true;
         recognition.stop();
 
         const startTime = Date.now();
@@ -138,8 +143,8 @@ export default function AIVoiceAssistantCard({
             
             const playedOk = await new Promise<boolean>(async (resolve) => {
               try {
-                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-                const ctx = new AudioContextClass();
+                // Reuse the global, pre-unlocked AudioContext to prevent autoplay block
+                const ctx = getAudioContext();
                 
                 const rawBinary = window.atob(audio);
                 const bytes = new Uint8Array(rawBinary.length);
@@ -156,7 +161,6 @@ export default function AIVoiceAssistantCard({
                 source.connect(ctx.destination);
                 
                 source.onended = () => resolve(true);
-                source.onerror = () => resolve(false);
                 source.start(0);
               } catch (playErr) {
                 console.error("Error in native audio playback:", playErr);
@@ -184,6 +188,7 @@ export default function AIVoiceAssistantCard({
         } finally {
           if (onStartSpeaking) onStartSpeaking(false);
           
+          isProcessingRef.current = false;
           // Re-enable listening after speech ends if still in hands-free mode
           if (isHandsFreeRef.current) {
             console.log('%c[Linguo Voice Assistant] Resuming SpeechRecognition loop...', 'color: #8b5cf6;');
@@ -194,16 +199,17 @@ export default function AIVoiceAssistantCard({
     };
 
     recognition.onerror = () => {
-      // Re-arm in hands-free mode
-      if (isHandsFreeRef.current) {
+      // Re-arm in hands-free mode if not currently processing speech
+      if (isHandsFreeRef.current && !isProcessingRef.current) {
         try { recognition.start(); } catch (e) {}
       }
     };
 
     recognition.onend = () => {
-      if (isHandsFreeRef.current) {
+      // Only restart if not currently processing / speaking
+      if (isHandsFreeRef.current && !isProcessingRef.current) {
         try { recognition.start(); } catch (e) {}
-      } else {
+      } else if (!isHandsFreeRef.current) {
         setIsListening(false);
       }
     };
@@ -218,6 +224,8 @@ export default function AIVoiceAssistantCard({
       try { recognition.stop(); } catch (e) {}
     };
   }, [isHandsFree]);
+
+
 
   // Helper to request microphone permission explicitly on user click
   const requestMicrophonePermission = async (): Promise<boolean> => {
