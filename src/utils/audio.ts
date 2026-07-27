@@ -259,7 +259,13 @@ export function speakLanguageText(text: string, ttsCode: string = 'zh-CN', rate?
       utterance.rate = effectiveRate;
       const voices = window.speechSynthesis.getVoices();
       const prefix = ttsCode.split('-')[0].toLowerCase();
-      const matchVoice = voices.find(v => v.lang.toLowerCase().startsWith(prefix));
+      
+      // Select the best natural voice for local fallback
+      const matchVoice = voices.find(v => 
+        v.lang.toLowerCase().startsWith(prefix) && 
+        (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Premium'))
+      ) || voices.find(v => v.lang.toLowerCase().startsWith(prefix));
+
       if (matchVoice) utterance.voice = matchVoice;
       utterance.onend = () => resolve(true);
       utterance.onerror = () => resolve(false);
