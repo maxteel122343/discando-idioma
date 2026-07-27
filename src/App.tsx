@@ -1459,7 +1459,7 @@ export default function App() {
           {/* AI Voice Assistant Guidance Bar (Home/Review) vs Level Badge (Music Mode) & Minimized Playlist Button */}
           <div className="flex items-center justify-between gap-3 w-full">
             {/* AI Voice Assistant - Enabled and visible */}
-            {true && (
+            {!isMusicMode && (
               <AIVoiceAssistantCard
                 isEnabled={isVoiceAssistantEnabled}
                 onToggleEnabled={() => {
