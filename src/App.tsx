@@ -2016,6 +2016,11 @@ export default function App() {
                 onNextReviewSentence={handleNextReviewSentence}
                 reviewXp={reviewXp}
                 ttsCode={currentLanguage.ttsCode}
+                totalXp={totalXp}
+                completedMusicSentenceIndices={completedMusicSentenceIndices}
+                songTrophies={songTrophies}
+                dialErrorsCount={dialErrorsCount}
+                songs={musicSongs}
               />
             </div>
           </div>

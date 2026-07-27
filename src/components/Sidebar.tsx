@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sentence, joinSentence } from '../types';
-import { speakLanguageText, getAudioContext } from '../utils/audio';
+import { speakLanguageText, getAudioContext, playTick } from '../utils/audio';
 import { 
   Volume2, 
   HelpCircle, 
@@ -22,7 +22,8 @@ import {
   Mic,
   MicOff,
   Sparkles,
-  Send
+  Send,
+  Trophy
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -42,9 +43,14 @@ interface SidebarProps {
   onNextReviewSentence: () => void;
   reviewXp: number;
   ttsCode?: string;
+  totalXp: number;
+  completedMusicSentenceIndices: number[];
+  songTrophies: Record<string, 'gold' | 'silver' | 'bronze'>;
+  dialErrorsCount: number;
+  songs: any[];
 }
 
-type TabType = 'home' | 'categories' | 'review' | 'progress' | 'profile' | 'chat';
+type TabType = 'home' | 'categories' | 'review' | 'progress' | 'profile' | 'chat' | 'ranking';
 
 export default function Sidebar({
   sentences,
@@ -63,10 +69,98 @@ export default function Sidebar({
   onNextReviewSentence,
   reviewXp,
   ttsCode = 'zh-CN',
+  totalXp,
+  completedMusicSentenceIndices,
+  songTrophies,
+  dialErrorsCount,
+  songs,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [expandedSentenceId, setExpandedSentenceId] = useState<string | null>(null);
+
+  // Competitor type
+  interface Competitor {
+    id: string;
+    name: string;
+    avatar: string;
+    country: string;
+    isUser?: boolean;
+    xp: number;
+    sentences: number;
+    songs: number;
+    gold: number;
+    silver: number;
+    bronze: number;
+    errors: number;
+  }
+
+  // Simulated competitors state
+  const [competitors, setCompetitors] = useState<Competitor[]>(() => {
+    const saved = localStorage.getItem('hanzi_dial_competitors');
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: 'c1', name: 'Elena', avatar: '👩‍🦰', country: '🇷🇺', xp: 1450, sentences: 48, songs: 4, gold: 2, silver: 1, bronze: 0, errors: 6 },
+      { id: 'c2', name: 'Kenji', avatar: '👨‍⚕️', country: '🇯🇵', xp: 1210, sentences: 39, songs: 3, gold: 1, silver: 2, bronze: 0, errors: 14 },
+      { id: 'c3', name: 'Mateo', avatar: '👱‍♂️', country: '🇦🇷', xp: 980, sentences: 31, songs: 2, gold: 0, silver: 1, bronze: 2, errors: 19 },
+      { id: 'c4', name: 'Emma', avatar: '👩‍⚕️', country: '🇬🇧', xp: 750, sentences: 24, songs: 1, gold: 0, silver: 0, bronze: 3, errors: 22 },
+      { id: 'c5', name: 'Mei-Ling', avatar: '👩‍🎓', country: '🇨🇳', xp: 1650, sentences: 55, songs: 5, gold: 3, silver: 1, bronze: 0, errors: 4 },
+      { id: 'c6', name: 'Lucas', avatar: '👦', country: '🇫🇷', xp: 620, sentences: 18, songs: 1, gold: 0, silver: 0, bronze: 2, errors: 25 },
+      { id: 'c7', name: 'Sophia', avatar: '👧', country: '🇩🇪', xp: 480, sentences: 12, songs: 0, gold: 0, silver: 0, bronze: 1, errors: 12 },
+    ];
+  });
+
+  type SortKey = 'xp' | 'sentences' | 'songs' | 'gold' | 'silver' | 'bronze' | 'errors';
+  const [sortKey, setSortKey] = useState<SortKey>('xp');
+
+  // Save competitors
+  useEffect(() => {
+    localStorage.setItem('hanzi_dial_competitors', JSON.stringify(competitors));
+  }, [competitors]);
+
+  // Simulate rival progression whenever user gains XP
+  const lastUserXpRef = useRef(totalXp);
+  useEffect(() => {
+    if (totalXp > lastUserXpRef.current) {
+      setCompetitors(curr => 
+        curr.map(comp => {
+          if (Math.random() < 0.45) {
+            const xpGain = Math.floor(Math.random() * 20) + 5;
+            const newXp = comp.xp + xpGain;
+            const sentencesGain = Math.random() < 0.35 ? 1 : 0;
+            const newSentences = comp.sentences + sentencesGain;
+            const songGain = sentencesGain > 0 && Math.random() < 0.25 ? 1 : 0;
+            const newSongs = comp.songs + songGain;
+            
+            let gold = comp.gold;
+            let silver = comp.silver;
+            let bronze = comp.bronze;
+            if (songGain > 0) {
+              const roll = Math.random();
+              if (roll > 0.8) gold++;
+              else if (roll > 0.45) silver++;
+              else bronze++;
+            }
+
+            const errorsGain = Math.floor(Math.random() * 3);
+
+            return {
+              ...comp,
+              xp: newXp,
+              sentences: newSentences,
+              songs: newSongs,
+              gold,
+              silver,
+              bronze,
+              errors: comp.errors + errorsGain
+            };
+          }
+          return comp;
+        })
+      );
+      lastUserXpRef.current = totalXp;
+    }
+  }, [totalXp]);
 
   // Dedicated Chat Tab States
   const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([
@@ -300,6 +394,41 @@ export default function Sidebar({
   const totalSentences = sentences.length;
   const completedCount = completedSentenceIds.length;
   const completionPercent = totalSentences > 0 ? Math.round((completedCount / totalSentences) * 100) : 0;
+
+  // Calculate user stats from props
+  const userGoldCount = Object.values(songTrophies).filter(t => t === 'gold').length;
+  const userSilverCount = Object.values(songTrophies).filter(t => t === 'silver').length;
+  const userBronzeCount = Object.values(songTrophies).filter(t => t === 'bronze').length;
+
+  const completedSongsCount = songs.filter(s => {
+    const saved = localStorage.getItem(`hanzi_dial_completed_music_indices_${s.id}`);
+    const completedIndices = saved ? JSON.parse(saved) : [];
+    return completedIndices.length > 0;
+  }).length;
+
+  const userCompetitor: Competitor = {
+    id: 'user',
+    name: userName || 'Você',
+    avatar: '👨‍🚀',
+    country: '🇧🇷',
+    isUser: true,
+    xp: totalXp,
+    sentences: completedCount,
+    songs: completedSongsCount,
+    gold: userGoldCount,
+    silver: userSilverCount,
+    bronze: userBronzeCount,
+    errors: dialErrorsCount,
+  };
+
+  const allStandings = [...competitors, userCompetitor];
+
+  const sortedStandings = [...allStandings].sort((a, b) => {
+    if (sortKey === 'errors') {
+      return a.errors - b.errors;
+    }
+    return b[sortKey] - a[sortKey];
+  });
 
   // Sound handler
   const handleSpeak = async (sentenceText: string, id: string) => {
@@ -991,6 +1120,159 @@ export default function Sidebar({
             </motion.div>
           )}
 
+          {/* TAB 6: DYNAMIC SORTABLE RANKING (Leaderboard) */}
+          {activeTab === 'ranking' && (
+            <motion.div
+              key="ranking-tab"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="space-y-3.5 flex flex-col h-[480px]"
+            >
+              {/* League Badge Header */}
+              <div className="bg-gradient-to-r from-amber-500/10 to-indigo-500/10 dark:from-amber-500/5 dark:to-indigo-500/5 border border-indigo-100/60 dark:border-indigo-900/40 p-3 rounded-2xl flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-900 flex items-center justify-center text-xl shadow-md font-bold animate-pulse">
+                    {totalXp >= 1500 ? '💎' : totalXp >= 800 ? '🏆' : totalXp >= 400 ? '🥈' : '🥉'}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-850 dark:text-slate-100 uppercase tracking-tight">
+                      {totalXp >= 1500 ? 'Liga Diamante' : totalXp >= 800 ? 'Liga Ouro' : totalXp >= 400 ? 'Liga Prata' : 'Liga Bronze'}
+                    </h4>
+                    <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                      Divisão Ativa de Aprendizado
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Countdown */}
+                <div className="text-right">
+                  <span className="block text-[8px] font-mono font-black uppercase text-slate-400 dark:text-slate-500">
+                    Fim da Liga:
+                  </span>
+                  <span className="text-[10px] font-mono font-extrabold text-indigo-650 dark:text-indigo-400 animate-pulse">
+                    2d 14h
+                  </span>
+                </div>
+              </div>
+
+              {/* Sorting Filter Selector */}
+              <div className="space-y-1.5">
+                <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                  Ordenar Classificação por:
+                </span>
+                <div className="flex gap-1 overflow-x-auto pb-1 select-none custom-scrollbar">
+                  {[
+                    { key: 'xp', label: '⚡ XP' },
+                    { key: 'sentences', label: '💬 Frases' },
+                    { key: 'songs', label: '🎵 Músicas' },
+                    { key: 'gold', label: '🏆 Ouro' },
+                    { key: 'silver', label: '🥈 Prata' },
+                    { key: 'bronze', label: '🥉 Bronze' },
+                    { key: 'errors', label: '⚠️ Erros' }
+                  ].map((btn) => {
+                    const isSelected = sortKey === btn.key;
+                    return (
+                      <button
+                        key={btn.key}
+                        onClick={() => {
+                          playTick();
+                          setSortKey(btn.key as SortKey);
+                        }}
+                        className={`flex-shrink-0 px-2.5 py-1 rounded-xl text-[9px] font-extrabold tracking-wide uppercase transition-all active:scale-95 border cursor-pointer ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-md scale-102 font-black'
+                            : 'bg-white dark:bg-slate-905 text-slate-650 dark:text-slate-350 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900'
+                        }`}
+                      >
+                        {btn.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Leaderboard Rankings List */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar max-h-[300px] min-h-[220px]">
+                {sortedStandings.map((comp, index) => {
+                  const rankNum = index + 1;
+                  const isUser = comp.isUser;
+                  
+                  // Detail line based on active sort
+                  let metricDetail = '';
+                  if (sortKey === 'xp') metricDetail = `${comp.xp} XP`;
+                  else if (sortKey === 'sentences') metricDetail = `${comp.sentences} frases`;
+                  else if (sortKey === 'songs') metricDetail = `${comp.songs} músicas`;
+                  else if (sortKey === 'gold') metricDetail = `${comp.gold} ouro`;
+                  else if (sortKey === 'silver') metricDetail = `${comp.silver} prata`;
+                  else if (sortKey === 'bronze') metricDetail = `${comp.bronze} bronze`;
+                  else if (sortKey === 'errors') metricDetail = `${comp.errors} erros`;
+
+                  return (
+                    <div
+                      key={comp.id}
+                      className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all ${
+                        isUser
+                          ? 'bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border-indigo-500/80 shadow-md ring-1 ring-indigo-400/25 scale-[1.01]'
+                          : 'bg-white dark:bg-slate-950/80 border-slate-200 dark:border-slate-850/80'
+                      }`}
+                    >
+                      {/* Left Block: Position, Avatar, Name */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {/* Rank Medals */}
+                        <div className="w-5 flex justify-center text-xs font-mono font-black shrink-0 text-slate-400">
+                          {rankNum === 1 ? '🥇' : rankNum === 2 ? '🥈' : rankNum === 3 ? '🥉' : rankNum}
+                        </div>
+                        {/* Avatar */}
+                        <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 flex items-center justify-center text-sm shrink-0">
+                          {comp.avatar}
+                        </div>
+                        {/* User info */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] shrink-0">{comp.country}</span>
+                            <span className={`text-[11px] font-black truncate max-w-[85px] ${isUser ? 'text-indigo-650 dark:text-indigo-400 font-extrabold' : 'text-slate-850 dark:text-slate-150'}`}>
+                              {comp.name}
+                            </span>
+                          </div>
+                          <span className="block text-[8px] font-mono font-black uppercase text-indigo-500/80 dark:text-indigo-400">
+                            {metricDetail}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right Block: Stats Badges Grid */}
+                      <div className="flex items-center gap-1 text-[8px] font-mono font-black text-slate-400">
+                        <div className="bg-amber-400/10 border border-amber-300/35 px-1 py-0.5 rounded text-amber-500 flex items-center gap-0.5" title="Ouro">
+                          <span>🏆</span>
+                          <span>{comp.gold}</span>
+                        </div>
+                        <div className="bg-slate-300/10 border border-slate-350/35 px-1 py-0.5 rounded text-slate-450 flex items-center gap-0.5" title="Prata">
+                          <span>🥈</span>
+                          <span>{comp.silver}</span>
+                        </div>
+                        <div className="bg-amber-600/10 border border-amber-500/35 px-1 py-0.5 rounded text-amber-600 flex items-center gap-0.5" title="Bronze">
+                          <span>🥉</span>
+                          <span>{comp.bronze}</span>
+                        </div>
+                        <div className="bg-red-500/5 border border-red-500/20 px-1 py-0.5 rounded text-red-550 flex items-center gap-0.5" title="Erros">
+                          <span>⚠️</span>
+                          <span>{comp.errors}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Promotion / Relegation indicator footers */}
+              <div className="bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-ping"></span>
+                <span>ZONA DE PROMOÇÃO (Top 3 avançam de liga)</span>
+              </div>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </div>
 
@@ -1044,6 +1326,14 @@ export default function Sidebar({
         >
           <TrendingUp size={18} />
           <span>Progresso</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ranking')}
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-all ${activeTab === 'ranking' ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-500'}`}
+        >
+          <Trophy size={18} />
+          <span>Ranking</span>
         </button>
 
         <button
