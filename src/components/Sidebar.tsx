@@ -48,6 +48,7 @@ interface SidebarProps {
   songTrophies: Record<string, 'gold' | 'silver' | 'bronze'>;
   dialErrorsCount: number;
   songs: any[];
+  forceTab?: TabType;
 }
 
 type TabType = 'home' | 'categories' | 'review' | 'progress' | 'profile' | 'chat' | 'ranking';
@@ -74,10 +75,18 @@ export default function Sidebar({
   songTrophies,
   dialErrorsCount,
   songs,
+  forceTab,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [expandedSentenceId, setExpandedSentenceId] = useState<string | null>(null);
+
+  // Sync tab with parent forceTab prop
+  useEffect(() => {
+    if (forceTab) {
+      setActiveTab(forceTab);
+    }
+  }, [forceTab]);
 
   // Competitor type
   interface Competitor {

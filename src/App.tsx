@@ -595,6 +595,7 @@ export default function App() {
   const [activeWordIds, setActiveWordIds] = useState<string[]>([]);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
+  const [sidebarForceTab, setSidebarForceTab] = useState<'home' | 'categories' | 'review' | 'progress' | 'profile' | 'chat' | 'ranking' | undefined>(undefined);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebratedSentence, setCelebratedSentence] = useState<Sentence | null>(null);
   const [levelUpInfo, setLevelUpInfo] = useState<{ newLevel: number } | null>(null);
@@ -1423,16 +1424,14 @@ export default function App() {
               <span className="hidden xs:inline">Como Jogar</span>
             </button>
 
-            {/* Mobile Sidebar Toggle (Only if not in ebook or music mode) */}
-            {!isEbookMode && !isMusicMode && (
-              <button
-                onClick={() => { playTick(); setIsSidebarOpenMobile(!isSidebarOpenMobile); }}
-                className="lg:hidden flex items-center justify-center p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
-                title="Ver Lista de Frases"
-              >
-                {isSidebarOpenMobile ? <X size={18} /> : <Menu size={18} />}
-              </button>
-            )}
+            {/* Mobile Sidebar Toggle */}
+            <button
+              onClick={() => { playTick(); setIsSidebarOpenMobile(!isSidebarOpenMobile); }}
+              className="lg:hidden flex items-center justify-center p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
+              title="Ver Lista de Frases"
+            >
+              {isSidebarOpenMobile ? <X size={18} /> : <Menu size={18} />}
+            </button>
 
           </div>
         </div>
@@ -1449,15 +1448,16 @@ export default function App() {
               setIsEbookMode(false);
               setIsReviewMode(false);
               setIsSidebarOpenMobile(false);
+              setSidebarForceTab(undefined);
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-              !isMusicMode && !isEbookMode
+              !isMusicMode && !isEbookMode && !isSidebarOpenMobile
                 ? 'text-indigo-600 dark:text-indigo-400'
                 : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
             }`}
           >
             <div className={`p-1.5 rounded-xl transition-all ${
-              !isMusicMode && !isEbookMode
+              !isMusicMode && !isEbookMode && !isSidebarOpenMobile
                 ? 'bg-indigo-100 dark:bg-indigo-950/60'
                 : ''
             }`}>
@@ -1476,6 +1476,7 @@ export default function App() {
               setIsReviewMode(false);
               setIsSidebarOpenMobile(false);
               setIsMusicPlaying(true);
+              setSidebarForceTab(undefined);
               handleClearSequence();
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
@@ -1509,6 +1510,7 @@ export default function App() {
                 setIsEbookMode(false);
               }
               setIsSidebarOpenMobile(false);
+              setSidebarForceTab(undefined);
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
               isEbookMode
@@ -1524,6 +1526,29 @@ export default function App() {
               <BookOpen size={20} />
             </div>
             <span className="text-[10px] font-bold">Livro</span>
+          </button>
+
+          {/* Ranking Tab */}
+          <button
+            onClick={() => {
+              playTick();
+              setSidebarForceTab('ranking');
+              setIsSidebarOpenMobile(true);
+            }}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+              isSidebarOpenMobile && sidebarForceTab === 'ranking'
+                ? 'text-amber-600 dark:text-amber-400'
+                : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+            }`}
+          >
+            <div className={`p-1.5 rounded-xl transition-all ${
+              isSidebarOpenMobile && sidebarForceTab === 'ranking'
+                ? 'bg-amber-100 dark:bg-amber-950/60'
+                : ''
+            }`}>
+              <Trophy size={20} />
+            </div>
+            <span className="text-[10px] font-bold">Ranking</span>
           </button>
 
           {/* Settings Tab */}
@@ -1577,6 +1602,7 @@ export default function App() {
               songTrophies={songTrophies}
               dialErrorsCount={dialErrorsCount}
               songs={musicSongs}
+              forceTab={sidebarForceTab}
             />
           </div>
         </div>
