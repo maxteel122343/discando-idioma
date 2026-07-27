@@ -130,8 +130,14 @@ ${text.slice(0, 3000)}
 // Endpoint for AI Voice Assistant conversational chat
 app.post("/api/chat", async (req, res) => {
   const { message, history, systemInstruction } = req.body;
+  const startTime = Date.now();
+
+  console.log(`\n--- [Gemini Chat Request] ---`);
+  console.log(`[Input Message]: "${message}"`);
+  console.log(`[History Turns]: ${history ? history.length : 0}`);
 
   if (!message || typeof message !== "string") {
+    console.warn(`[Chat Warning]: Missing or invalid message parameter.`);
     return res.status(400).json({ error: "A mensagem é obrigatória." });
   }
 
@@ -140,6 +146,7 @@ app.post("/api/chat", async (req, res) => {
     const contents = history || [];
     contents.push({ role: "user", parts: [{ text: message }] });
 
+    console.log(`[Gemini API Call]: Generating content with model gemini-3.5-flash...`);
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: contents,
@@ -149,9 +156,17 @@ app.post("/api/chat", async (req, res) => {
     });
 
     const aiText = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const duration = Date.now() - startTime;
+
+    console.log(`[Gemini Response]: "${aiText}"`);
+    console.log(`[Duration]: ${duration}ms`);
+    console.log(`-------------------------------\n`);
+
     return res.json({ text: aiText });
   } catch (err: any) {
-    console.error("Erro na conversa com Gemini:", err);
+    const duration = Date.now() - startTime;
+    console.error(`[Gemini Error] after ${duration}ms:`, err);
+    console.log(`-------------------------------\n`);
     return res.status(500).json({ error: err.message });
   }
 });

@@ -79,6 +79,7 @@ export default function AIVoiceAssistantCard({
     recognition.onstart = () => {
       setIsListening(true);
       setSpeechFeedback('🎙️ Modo Mãos Livres Ativo: Fale livremente com a Linguo!');
+      console.log('%c[Linguo Voice Assistant] Hands-free SpeechRecognition started. Listening in pt-BR...', 'color: #8b5cf6; font-weight: bold;');
     };
 
     recognition.onresult = async (event: any) => {
@@ -87,17 +88,21 @@ export default function AIVoiceAssistantCard({
       const transcript = result[0].transcript;
       
       setSpeechFeedback(`🎙️ Ouvindo: "${transcript}"`);
+      console.log(`%c[Linguo Voice Assistant] Interim speech: "${transcript}"`, 'color: #a78bfa;');
 
       if (result.isFinal) {
         const query = transcript.trim();
         if (query.length === 0) return;
 
+        console.log(`%c[Linguo Voice Assistant] Final transcription: "${query}"`, 'color: #8b5cf6; font-weight: bold; font-size: 11px;');
         setSpeechFeedback(`✨ Processando: "${query}"...`);
         recognition.stop();
 
+        const startTime = Date.now();
         try {
           if (onStartSpeaking) onStartSpeaking(true);
           
+          console.log('%c[Linguo Voice Assistant] Sending query to /api/chat backend...', 'color: #3b82f6;');
           const response = await fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -107,9 +112,12 @@ export default function AIVoiceAssistantCard({
             }),
           });
 
-          if (!response.ok) throw new Error("Erro na rede");
+          if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
           const data = await response.json();
           const reply = data.text;
+          const latency = Date.now() - startTime;
+
+          console.log(`%c[Linguo Voice Assistant] Gemini reply received in ${latency}ms: "${reply}"`, 'color: #10b981; font-weight: bold;');
 
           // Update local history
           setChatHistory(prev => [
@@ -123,10 +131,13 @@ export default function AIVoiceAssistantCard({
           }
 
           // Play response via TTS
+          console.log('%c[Linguo Voice Assistant] Directing response to TTS audio engine...', 'color: #eab308;');
           await speakLanguageText(reply, nativeLanguageCode);
+          console.log('%c[Linguo Voice Assistant] TTS audio finished playback.', 'color: #eab308;');
 
         } catch (e: any) {
-          console.error("Erro na conversação:", e);
+          const latency = Date.now() - startTime;
+          console.error(`%c[Linguo Voice Assistant Error] failed after ${latency}ms:`, 'color: #ef4444; font-weight: bold;', e);
           setSpeechFeedback("❌ Falha na resposta da assistente.");
           setTimeout(() => setSpeechFeedback(null), 3000);
         } finally {
@@ -134,6 +145,7 @@ export default function AIVoiceAssistantCard({
           
           // Re-enable listening after speech ends if still in hands-free mode
           if (isHandsFreeRef.current) {
+            console.log('%c[Linguo Voice Assistant] Resuming SpeechRecognition loop...', 'color: #8b5cf6;');
             try { recognition.start(); } catch(err){}
           }
         }
