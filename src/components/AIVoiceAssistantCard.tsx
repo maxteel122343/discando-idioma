@@ -49,6 +49,7 @@ export default function AIVoiceAssistantCard({
   
   // Local conversational history
   const [chatHistory, setChatHistory] = useState<{ role: string; parts: { text: string }[] }[]>([]);
+  const [textInput, setTextInput] = useState('');
 
   const nativeLangConfig = NATIVE_LANGUAGES.find(l => l.code === nativeLanguageCode) || NATIVE_LANGUAGES[0];
 
@@ -59,6 +60,45 @@ export default function AIVoiceAssistantCard({
 
   // Track if we are currently calling API or speaking to avoid starting mic over our own sound
   const isProcessingRef = useRef(false);
+
+  // Welcome user out loud when first expanding the card
+  useEffect(() => {
+    if (isExpanded && isEnabled && chatHistory.length === 0 && !currentSpeechText) {
+      console.log('%c[Linguo Voice Assistant] Playing welcome greeting...', 'color: #8b5cf6;');
+      speakLanguageText(nativeLangConfig.phrases.greeting, nativeLanguageCode);
+    }
+  }, [isExpanded, isEnabled]);
+
+  // Helper to play native audio buffer with a safety timeout (so it never locks up the conversation)
+  const playNativeAudioWithTimeout = (ctx: AudioContext, audioBuffer: AudioBuffer, timeoutMs = 8000): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
+      try {
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(ctx.destination);
+        
+        let resolved = false;
+        const finish = (status: boolean) => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timer);
+          resolve(status);
+        };
+
+        const timer = setTimeout(() => {
+          console.warn("[Linguo Voice Assistant] Audio playback timed out. Unlocking...");
+          try { source.stop(); } catch(e){}
+          finish(false);
+        }, timeoutMs);
+
+        source.onended = () => finish(true);
+        source.start(0);
+      } catch (err) {
+        console.error("Error starting source playback:", err);
+        resolve(false);
+      }
+    });
+  };
 
   // Continuous hands-free recognition engine
   useEffect(() => {
@@ -141,32 +181,24 @@ export default function AIVoiceAssistantCard({
           if (audio) {
             console.log('%c[Linguo Voice Assistant] Playing native Gemini voice...', 'color: #10b981;');
             
-            const playedOk = await new Promise<boolean>(async (resolve) => {
-              try {
-                // Reuse the global, pre-unlocked AudioContext to prevent autoplay block
-                const ctx = getAudioContext();
-                
-                const rawBinary = window.atob(audio);
-                const bytes = new Uint8Array(rawBinary.length);
-                for (let i = 0; i < rawBinary.length; i++) {
-                  bytes[i] = rawBinary.charCodeAt(i);
-                }
-                
-                const audioBuffer = await ctx.decodeAudioData(
-                  bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-                );
-                
-                const source = ctx.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(ctx.destination);
-                
-                source.onended = () => resolve(true);
-                source.start(0);
-              } catch (playErr) {
-                console.error("Error in native audio playback:", playErr);
-                resolve(false);
+            let playedOk = false;
+            try {
+              const ctx = getAudioContext();
+              const rawBinary = window.atob(audio);
+              const bytes = new Uint8Array(rawBinary.length);
+              for (let i = 0; i < rawBinary.length; i++) {
+                bytes[i] = rawBinary.charCodeAt(i);
               }
-            });
+              
+              const audioBuffer = await ctx.decodeAudioData(
+                bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+              );
+              
+              // Play with our robust safety timeout
+              playedOk = await playNativeAudioWithTimeout(ctx, audioBuffer);
+            } catch (playErr) {
+              console.error("Error in native audio setup:", playErr);
+            }
 
             if (!playedOk) {
               console.log('%c[Linguo Voice Assistant] Native playback failed, falling back to client TTS...', 'color: #ef4444;');
@@ -224,6 +256,80 @@ export default function AIVoiceAssistantCard({
       try { recognition.stop(); } catch (e) {}
     };
   }, [isHandsFree]);
+
+  // Handle typed text submission to chat assistant
+  const handleTextSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = textInput.trim();
+    if (query.length === 0) return;
+
+    setTextInput('');
+    setSpeechFeedback(`✨ Processando: "${query}"...`);
+    isProcessingRef.current = true;
+
+    const startTime = Date.now();
+    try {
+      if (onStartSpeaking) onStartSpeaking(true);
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: query,
+          history: chatHistory,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+      const data = await response.json();
+      const reply = data.text;
+      const audio = data.audio;
+      const latency = Date.now() - startTime;
+
+      console.log(`%c[Linguo Voice Assistant] Text submission reply received in ${latency}ms: "${reply}"`, 'color: #10b981; font-weight: bold;');
+
+      setChatHistory(prev => [
+        ...prev,
+        { role: "user", parts: [{ text: query }] },
+        { role: "model", parts: [{ text: reply }] }
+      ]);
+
+      if (onUpdateSpeechText) {
+        onUpdateSpeechText(reply);
+      }
+      setSpeechFeedback(null);
+
+      // Play audio response in a non-blocking background thread (so user can type another message instantly)
+      if (audio) {
+        try {
+          const ctx = getAudioContext();
+          const rawBinary = window.atob(audio);
+          const bytes = new Uint8Array(rawBinary.length);
+          for (let i = 0; i < rawBinary.length; i++) {
+            bytes[i] = rawBinary.charCodeAt(i);
+          }
+          const audioBuffer = await ctx.decodeAudioData(
+            bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+          );
+          // Play background audio without blocking execution loop
+          playNativeAudioWithTimeout(ctx, audioBuffer);
+        } catch (playErr) {
+          console.error("Text mode native audio playback error:", playErr);
+          speakLanguageText(reply, nativeLanguageCode);
+        }
+      } else {
+        speakLanguageText(reply, nativeLanguageCode);
+      }
+
+    } catch (err: any) {
+      console.error("Text chat failed:", err);
+      setSpeechFeedback("❌ Falha na resposta da assistente.");
+      setTimeout(() => setSpeechFeedback(null), 3000);
+    } finally {
+      if (onStartSpeaking) onStartSpeaking(false);
+      isProcessingRef.current = false;
+    }
+  };
 
 
 
@@ -494,6 +600,26 @@ export default function AIVoiceAssistantCard({
                 )}
               </div>
             </div>
+
+            {/* Text Chat Input Bar */}
+            <form 
+              onSubmit={handleTextSubmit}
+              className="flex items-center gap-2 bg-black/25 backdrop-blur-md rounded-2xl p-1 border border-white/15 focus-within:border-indigo-400/70 transition-all shadow-inner"
+            >
+              <input
+                type="text"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Ou digite uma mensagem para conversar..."
+                className="flex-1 bg-transparent border-none text-xs text-indigo-50 placeholder-indigo-200/40 outline-none px-3 py-2 font-mono"
+              />
+              <button
+                type="submit"
+                className="bg-amber-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-black hover:bg-amber-300 transition-all active:scale-95 cursor-pointer shadow"
+              >
+                Enviar
+              </button>
+            </form>
 
             {/* Pronunciation Practice Feedback Badge */}
             {speechFeedback && (
