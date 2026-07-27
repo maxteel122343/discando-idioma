@@ -1205,5 +1205,106 @@ export const PRESET_SONGS: SongTrack[] = [
         explanation: 'Echar (lançar/soltar) + Versos del alma (versos da alma).'
       }
     ]
+  },
+  {
+    id: 'song-thriller',
+    title: 'Thriller',
+    artist: 'Michael Jackson',
+    coverEmoji: '🧟',
+    coverGradient: 'from-red-650 via-red-900 to-black',
+    language: 'Inglês',
+    audioUrl: '', // Will default to TTS synth
+    sentences: [
+      {
+        id: 'th-1',
+        characters: ['It\'s', 'close', 'to', 'midnight'],
+        pinyin: 'its clous tu midnait',
+        translation: 'Está perto da meia-noite.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Close to (perto de) + Midnight (meia-noite).'
+      },
+      {
+        id: 'th-2',
+        characters: ['And', 'something', 'evil\'s', 'lurkin\'', 'in', 'the', 'dark'],
+        pinyin: 'end samting ivils lârkin in de darc',
+        translation: 'E algo maligno está espreitando no escuro.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Something (algo). Evil\'s lurkin\' (o mal está espreitando/rondando).'
+      },
+      {
+        id: 'th-3',
+        characters: ['Under', 'the', 'moonlight'],
+        pinyin: 'ander de munlait',
+        translation: 'Sob a luz do luar.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Under (sob/debaixo de) + Moonlight (luz da lua).'
+      },
+      {
+        id: 'th-4',
+        characters: ['You', 'see', 'a', 'sight', 'that', 'almost', 'stops', 'your', 'heart'],
+        pinyin: 'iu si e sait det olmoust stops ior hart',
+        translation: 'Você vê uma cena que quase para o seu coração.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Sight (visão/cena) + Stops your heart (para seu coração).'
+      },
+      {
+        id: 'th-5',
+        characters: ['You', 'try', 'to', 'scream'],
+        pinyin: 'iu trai tu iscrim',
+        translation: 'Você tenta gritar.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Try to scream (tenta gritar).'
+      },
+      {
+        id: 'th-6',
+        characters: ['But', 'terror', 'takes', 'the', 'sound', 'before', 'you', 'make', 'it'],
+        pinyin: 'bat terror teics de saund bifor iu meic it',
+        translation: 'Mas o terror leva o som antes de você conseguir emiti-lo.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Takes the sound (leva o som/voz) + Before you make it (antes de você fazer/conseguir).'
+      },
+      {
+        id: 'th-7',
+        characters: ['You', 'start', 'to', 'freeze'],
+        pinyin: 'iu istart tu frizi',
+        translation: 'Você começa a congelar (de medo).',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Start to freeze (começar a congelar/paralisar).'
+      },
+      {
+        id: 'th-8',
+        characters: ['As', 'horror', 'looks', 'you', 'right', 'between', 'the', 'eyes'],
+        pinyin: 'ez horror lucs iu rait bituin de ais',
+        translation: 'Enquanto o horror olha direto nos seus olhos.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Right between the eyes (direto/bem no meio dos olhos).'
+      },
+      {
+        id: 'th-9',
+        characters: ['You\'re', 'paralyzed'],
+        pinyin: 'iur paralaisd',
+        translation: 'Você está paralisado.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Paralyzed (paralisado).'
+      },
+      {
+        id: 'th-10',
+        characters: ['\'Cause', 'this', 'is', 'thriller', 'thriller', 'night'],
+        pinyin: 'coz dis iz triler triler nait',
+        translation: 'Porque esta é a noite do terror/thriller.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: '\'Cause (abreviação de because) + Thriller night (noite emocionante/de terror).'
+      }
+    ]
   }
 ];
