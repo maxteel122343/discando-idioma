@@ -7,6 +7,7 @@ interface MusicVitrineProps {
   activeSongId: string;
   onSelectSong: (songId: string) => void;
   onAddSong: () => void;
+  songTrophies?: Record<string, 'gold' | 'silver' | 'bronze'>;
 }
 
 export default function MusicVitrine({
@@ -14,6 +15,7 @@ export default function MusicVitrine({
   activeSongId,
   onSelectSong,
   onAddSong,
+  songTrophies = {},
 }: MusicVitrineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -90,6 +92,10 @@ export default function MusicVitrine({
                 <Radio size={11} className="text-white/80 animate-pulse shrink-0" />
               ) : !isUnlocked ? (
                 <Lock size={10} className="shrink-0 text-slate-400" />
+              ) : songTrophies?.[song.id] ? (
+                <span className="text-xs shrink-0 select-none">
+                  {songTrophies[song.id] === 'gold' ? '🏆' : songTrophies[song.id] === 'silver' ? '🥈' : '🥉'}
+                </span>
               ) : null}
             </button>
           );

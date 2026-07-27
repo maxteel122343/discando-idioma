@@ -491,6 +491,18 @@ export default function App() {
   });
 
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
+  const [musicTimer, setMusicTimer] = useState<number>(30);
+  const [isMusicGameFinished, setIsMusicGameFinished] = useState<boolean>(false);
+  const [songTrophies, setSongTrophies] = useState<Record<string, 'gold' | 'silver' | 'bronze'>>(() => {
+    const saved = localStorage.getItem('hanzi_dial_song_trophies');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [finishedSongStats, setFinishedSongStats] = useState<{
+    completed: number;
+    total: number;
+    rank: string;
+    xpGained: number;
+  } | null>(null);
 
   // isExpandedCanvas: expands the dialer canvas section + shows lyrics strip below
   const [isExpandedCanvas, setIsExpandedCanvas] = useState(true);
@@ -507,28 +519,54 @@ export default function App() {
     }
   }, [isMusicMode, activeSongId, musicSongs]);
 
-  // Auto-advance lyrics timer — fires every 30s when music is playing
+  // 1-second interval timer for Music Mode countdown
   const autoAdvanceRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (autoAdvanceRef.current) clearInterval(autoAdvanceRef.current);
-    if (!isMusicPlaying || !isMusicMode) return;
-    autoAdvanceRef.current = setInterval(() => {
-      setActiveMusicSentenceIndex(prev => {
-        const song = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
-        const next = Math.min(prev + 1, (song?.sentences.length ?? 1) - 1);
-        if (next !== prev) setWordRainTrigger(t => t + 1);
-        return next;
-      });
-    }, 30000);
-    return () => { if (autoAdvanceRef.current) clearInterval(autoAdvanceRef.current); };
-  }, [isMusicPlaying, isMusicMode, activeSongId, musicSongs]);
+    if (!isMusicPlaying || !isMusicMode || isMusicGameFinished) return;
 
-  // Trigger word rain whenever active sentence changes in music mode
+    autoAdvanceRef.current = setInterval(() => {
+      setMusicTimer(prev => {
+        if (prev <= 1) {
+          // Timer expired!
+          setTimeout(() => {
+            handleMusicTimerExpire();
+          }, 0);
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => { if (autoAdvanceRef.current) clearInterval(autoAdvanceRef.current); };
+  }, [isMusicPlaying, isMusicMode, isMusicGameFinished, activeMusicSentenceIndex, activeSongId, musicSongs]);
+
+  // Handle timer expiration
+  const handleMusicTimerExpire = () => {
+    const song = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+    if (!song) return;
+
+    const isLast = activeMusicSentenceIndex >= song.sentences.length - 1;
+    if (isLast) {
+      finishSongGame();
+    } else {
+      setActiveMusicSentenceIndex(prev => prev + 1);
+      handleClearSequence();
+      setWordRainTrigger(t => t + 1);
+      setMusicTimer(30);
+    }
+  };
+
+  // Trigger word rain and reset timer whenever active sentence changes in music mode
   const prevMusicIdxRef = useRef(activeMusicSentenceIndex);
   useEffect(() => {
-    if (isMusicMode && activeMusicSentenceIndex !== prevMusicIdxRef.current) {
-      setWordRainTrigger(t => t + 1);
-      prevMusicIdxRef.current = activeMusicSentenceIndex;
+    if (isMusicMode) {
+      localStorage.setItem('hanzi_dial_active_music_index', String(activeMusicSentenceIndex));
+      if (activeMusicSentenceIndex !== prevMusicIdxRef.current) {
+        setWordRainTrigger(t => t + 1);
+        prevMusicIdxRef.current = activeMusicSentenceIndex;
+      }
+      setMusicTimer(30);
     }
   }, [activeMusicSentenceIndex, isMusicMode]);
   // ─────────────────────────────────────────────────────────────────────────────
@@ -980,6 +1018,85 @@ export default function App() {
     handleClearSequence();
   };
 
+  const finishSongGame = () => {
+    setIsMusicPlaying(false);
+    
+    const song = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+    if (!song) return;
+
+    const total = song.sentences.length;
+    const completedCount = completedMusicSentenceIndices.length;
+    const pct = total > 0 ? (completedCount / total) * 100 : 0;
+    
+    let rank = 'Bad';
+    let trophy: 'gold' | 'silver' | 'bronze' = 'bronze';
+    
+    if (pct >= 95) {
+      rank = 'Amazing';
+      trophy = 'gold';
+    } else if (pct >= 80) {
+      rank = 'Excellent';
+      trophy = 'gold';
+    } else if (pct >= 60) {
+      rank = 'Good';
+      trophy = 'silver';
+    } else if (pct >= 40) {
+      rank = 'You are OK';
+      trophy = 'bronze';
+    } else {
+      rank = 'Bad';
+      trophy = 'bronze';
+    }
+
+    // Save trophy
+    const updatedTrophies = { ...songTrophies, [song.id]: trophy };
+    setSongTrophies(updatedTrophies);
+    localStorage.setItem('hanzi_dial_song_trophies', JSON.stringify(updatedTrophies));
+
+    // Calculate XP gained
+    const xpGained = completedCount * 15 + (pct >= 80 ? 100 : 0);
+    
+    setFinishedSongStats({
+      completed: completedCount,
+      total,
+      rank,
+      xpGained
+    });
+    
+    setIsMusicGameFinished(true);
+  };
+
+  const handleRetrySong = () => {
+    playTick();
+    setCompletedMusicSentenceIndices([]);
+    localStorage.removeItem(`hanzi_dial_completed_music_indices_${activeSongId}`);
+    setActiveMusicSentenceIndex(0);
+    setMusicTimer(30);
+    setIsMusicGameFinished(false);
+    setFinishedSongStats(null);
+    setIsMusicPlaying(true);
+  };
+
+  const handleNextSong = () => {
+    playTick();
+    const currentIndex = musicSongs.findIndex(s => s.id === activeSongId);
+    if (currentIndex !== -1 && currentIndex + 1 < musicSongs.length) {
+      const nextSong = musicSongs[currentIndex + 1];
+      setActiveSongId(nextSong.id);
+      localStorage.setItem('hanzi_dial_active_song_id', nextSong.id);
+      
+      // Load completed indices for new track or clear
+      const saved = localStorage.getItem(`hanzi_dial_completed_music_indices_${nextSong.id}`);
+      setCompletedMusicSentenceIndices(saved ? JSON.parse(saved) : []);
+      
+      setActiveMusicSentenceIndex(0);
+      setMusicTimer(30);
+      setIsMusicGameFinished(false);
+      setFinishedSongStats(null);
+      setIsMusicPlaying(true);
+    }
+  };
+
   const handleSpeakText = (text: string) => {
     speakLanguageText(text, currentLanguage.ttsCode, speechRate);
   };
@@ -1014,7 +1131,6 @@ export default function App() {
             setMusicSongs(updatedSongs);
           }
         }
-
       }
 
       // Sync to general home dashboard completions
@@ -1034,16 +1150,19 @@ export default function App() {
       }
 
       setCelebratedSentence(sentence);
-      // setShowCelebration(true); // Ocultado por solicitação do usuário
 
       setTimeout(() => {
         setShowCelebration(false);
-        const nextIndex = activeMusicSentenceIndex + 1;
-        if (activeTrack && nextIndex < activeTrack.sentences.length) {
-          setActiveMusicSentenceIndex(nextIndex);
-          handleClearSequence();
+        if (isLastSentence) {
+          finishSongGame();
+        } else {
+          const nextIndex = activeMusicSentenceIndex + 1;
+          if (activeTrack && nextIndex < activeTrack.sentences.length) {
+            setActiveMusicSentenceIndex(nextIndex);
+            handleClearSequence();
+          }
         }
-      }, 1200); // reduced delay since modal is hidden
+      }, 1200);
       return;
     }
 
@@ -1491,6 +1610,7 @@ export default function App() {
             <MusicVitrine
               songs={musicSongs}
               activeSongId={activeSongId}
+              songTrophies={songTrophies}
               onSelectSong={(songId) => {
                 playTick();
                 setActiveSongId(songId);
@@ -1693,6 +1813,12 @@ export default function App() {
                   
                   {/* Play & Next control icons inside lyrics header */}
                   <div className="flex items-center gap-1.5 pointer-events-auto">
+                    {isMusicPlaying && (
+                      <div className="flex items-center gap-1 bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-full mr-1.5 animate-pulse shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                        <span>{musicTimer}s</span>
+                      </div>
+                    )}
                     <button
                       onClick={() => {
                         playTick();
@@ -1797,6 +1923,7 @@ export default function App() {
               completedSentenceIndices={completedMusicSentenceIndices}
               isPlaying={isMusicPlaying}
               onTogglePlay={() => setIsMusicPlaying(!isMusicPlaying)}
+              songTrophies={songTrophies}
               onSelectSong={(songId) => {
                 playTick();
                 setActiveSongId(songId);
@@ -1948,6 +2075,80 @@ export default function App() {
             >
               Continuar Lendo e Discando 🚀
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Music End Game Modal */}
+      {isMusicGameFinished && finishedSongStats && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 border-2 border-indigo-500/30 p-6 sm:p-8 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl relative overflow-hidden text-white">
+            <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="w-20 h-20 mx-auto rounded-full bg-slate-800/85 border border-slate-750 flex items-center justify-center text-4xl shadow-xl animate-bounce">
+              {finishedSongStats.rank === 'Amazing' || finishedSongStats.rank === 'Excellent' ? '🏆' :
+               finishedSongStats.rank === 'Good' ? '🥈' : '🥉'}
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-widest">
+                Música Concluída!
+              </p>
+              <h2 className="text-xl font-black tracking-tight">
+                {finishedSongStats.rank === 'Amazing' ? 'DESEMPENHO SENSACIONAL!' :
+                 finishedSongStats.rank === 'Excellent' ? 'EXCELENTE TRABALHO!' :
+                 finishedSongStats.rank === 'Good' ? 'MUITO BOM!' : 'BOM ESFORÇO!'}
+              </h2>
+              <p className="text-xs text-indigo-200 font-medium leading-relaxed pt-1">
+                Você completou <strong className="text-white font-extrabold">{finishedSongStats.completed}</strong> de <strong className="text-white font-extrabold">{finishedSongStats.total}</strong> linhas da frase.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs font-mono font-bold text-slate-100">
+              <div className="bg-white/5 border border-white/10 p-2.5 rounded-2xl flex flex-col items-center">
+                <span className="text-[9px] text-slate-400 uppercase">Classificação</span>
+                <span className={`text-sm mt-0.5 ${
+                  finishedSongStats.rank === 'Amazing' || finishedSongStats.rank === 'Excellent' ? 'text-amber-400' :
+                  finishedSongStats.rank === 'Good' ? 'text-slate-350' : 'text-amber-650'
+                }`}>
+                  {finishedSongStats.rank}
+                </span>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-2.5 rounded-2xl flex flex-col items-center">
+                <span className="text-[9px] text-slate-400 uppercase">XP Ganhos</span>
+                <span className="text-sm mt-0.5 text-emerald-400">+{finishedSongStats.xpGained} XP</span>
+              </div>
+            </div>
+
+            {/* Level progress bar */}
+            <div className="space-y-1 text-left px-1">
+              <div className="flex justify-between text-[10px] font-mono font-black text-indigo-300">
+                <span>NÍVEL {Math.floor(totalXp / 100) + 1}</span>
+                <span>{totalXp % 100}/100 XP</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden border border-slate-700/50">
+                <div 
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-450 transition-all duration-500" 
+                  style={{ width: `${totalXp % 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={handleRetrySong}
+                className="flex-1 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer border border-slate-700"
+              >
+                Repetir 🔁
+              </button>
+              <button
+                onClick={handleNextSong}
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-650 to-indigo-550 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                Próxima 🎵
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -20,6 +20,7 @@ interface MusicPlayerPanelProps {
   onMinimizeMusic?: () => void;
   isPlaying?: boolean;
   onTogglePlay?: () => void;
+  songTrophies?: Record<string, 'gold' | 'silver' | 'bronze'>;
 }
 
 export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
@@ -35,6 +36,7 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
   onMinimizeMusic,
   isPlaying: propIsPlaying,
   onTogglePlay: propOnTogglePlay,
+  songTrophies = {},
 }) => {
   const currentSong = songs.find((s) => s.id === activeSongId) || songs[0];
   const sentences = currentSong?.sentences || [];
@@ -382,8 +384,14 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
                       <Radio size={12} />
                     </span>
                   ) : (
-                    <span className="text-[9px] font-mono font-bold text-slate-400">
-                      Mús. {sIdx + 1}
+                    <span className="text-[9px] font-mono font-bold text-slate-400 flex items-center gap-1">
+                      {songTrophies?.[song.id] ? (
+                        <span className="text-xs" title={`Troféu: ${songTrophies[song.id]}`}>
+                          {songTrophies[song.id] === 'gold' ? '🏆' : songTrophies[song.id] === 'silver' ? '🥈' : '🥉'}
+                        </span>
+                      ) : (
+                        `Mús. ${sIdx + 1}`
+                      )}
                     </span>
                   )}
                 </div>
