@@ -115,6 +115,8 @@ export default function AIVoiceAssistantCard({
           if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
           const data = await response.json();
           const reply = data.text;
+          const audio = data.audio;
+          const replyMimeType = data.mimeType || "audio/wav";
           const latency = Date.now() - startTime;
 
           console.log(`%c[Linguo Voice Assistant] Gemini reply received in ${latency}ms: "${reply}"`, 'color: #10b981; font-weight: bold;');
@@ -130,10 +132,49 @@ export default function AIVoiceAssistantCard({
             onUpdateSpeechText(reply);
           }
 
-          // Play response via TTS
-          console.log('%c[Linguo Voice Assistant] Directing response to TTS audio engine...', 'color: #eab308;');
-          await speakLanguageText(reply, nativeLanguageCode);
-          console.log('%c[Linguo Voice Assistant] TTS audio finished playback.', 'color: #eab308;');
+          // Play response via Native Gemini Audio if available, else fallback to standard client TTS
+          if (audio) {
+            console.log('%c[Linguo Voice Assistant] Playing native Gemini voice...', 'color: #10b981;');
+            
+            const playedOk = await new Promise<boolean>(async (resolve) => {
+              try {
+                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                const ctx = new AudioContextClass();
+                
+                const rawBinary = window.atob(audio);
+                const bytes = new Uint8Array(rawBinary.length);
+                for (let i = 0; i < rawBinary.length; i++) {
+                  bytes[i] = rawBinary.charCodeAt(i);
+                }
+                
+                const audioBuffer = await ctx.decodeAudioData(
+                  bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+                );
+                
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(ctx.destination);
+                
+                source.onended = () => resolve(true);
+                source.onerror = () => resolve(false);
+                source.start(0);
+              } catch (playErr) {
+                console.error("Error in native audio playback:", playErr);
+                resolve(false);
+              }
+            });
+
+            if (!playedOk) {
+              console.log('%c[Linguo Voice Assistant] Native playback failed, falling back to client TTS...', 'color: #ef4444;');
+              await speakLanguageText(reply, nativeLanguageCode);
+            } else {
+              console.log('%c[Linguo Voice Assistant] Native Gemini audio finished playback.', 'color: #10b981;');
+            }
+          } else {
+            console.log('%c[Linguo Voice Assistant] No native audio returned, falling back to client TTS...', 'color: #eab308;');
+            await speakLanguageText(reply, nativeLanguageCode);
+            console.log('%c[Linguo Voice Assistant] TTS audio finished playback.', 'color: #eab308;');
+          }
 
         } catch (e: any) {
           const latency = Date.now() - startTime;

@@ -156,13 +156,46 @@ app.post("/api/chat", async (req, res) => {
     });
 
     const aiText = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    
+    // Synthesize voice natively using Gemini TTS, bypassing client Google TTS key errors
+    let audioBase64: string | null = null;
+    let mimeType = "audio/wav";
+    
+    try {
+      console.log(`[Gemini TTS]: Synthesizing native voice with model gemini-2.5-flash-preview-tts...`);
+      const ttsResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ role: "user", parts: [{ text: aiText }] }],
+        config: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } // Default friendly female voice
+          }
+        }
+      });
+
+      const ttsParts = ttsResponse.candidates?.[0]?.content?.parts || [];
+      const audioPart = ttsParts.find((p: any) => p.inlineData?.data);
+      if (audioPart) {
+        audioBase64 = audioPart.inlineData.data;
+        mimeType = audioPart.inlineData.mimeType || "audio/wav";
+        console.log(`[Gemini TTS]: Native audio synthesized successfully.`);
+      }
+    } catch (ttsErr: any) {
+      console.error("[Gemini TTS Error]: Failed to synthesize native voice:", ttsErr.message);
+    }
+
     const duration = Date.now() - startTime;
 
     console.log(`[Gemini Response]: "${aiText}"`);
     console.log(`[Duration]: ${duration}ms`);
     console.log(`-------------------------------\n`);
 
-    return res.json({ text: aiText });
+    return res.json({ 
+      text: aiText, 
+      audio: audioBase64,
+      mimeType: mimeType 
+    });
   } catch (err: any) {
     const duration = Date.now() - startTime;
     console.error(`[Gemini Error] after ${duration}ms:`, err);
