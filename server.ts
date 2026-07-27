@@ -127,6 +127,35 @@ ${text.slice(0, 3000)}
   }
 });
 
+// Endpoint for AI Voice Assistant conversational chat
+app.post("/api/chat", async (req, res) => {
+  const { message, history, systemInstruction } = req.body;
+
+  if (!message || typeof message !== "string") {
+    return res.status(400).json({ error: "A mensagem é obrigatória." });
+  }
+
+  try {
+    const ai = getGeminiClient();
+    const contents = history || [];
+    contents.push({ role: "user", parts: [{ text: message }] });
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: contents,
+      config: {
+        systemInstruction: systemInstruction || "Você é Linguo, o assistente de voz amigável do aplicativo de idiomas. Responda em poucas palavras (no máximo 2 frases curtas) em português de forma muito simpática.",
+      },
+    });
+
+    const aiText = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return res.json({ text: aiText });
+  } catch (err: any) {
+    console.error("Erro na conversa com Gemini:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Configure Vite or Static files depending on environment
 async function setupViteAndListen() {
   if (process.env.NODE_ENV !== "production") {

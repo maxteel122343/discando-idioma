@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, VolumeX, Mic, MicOff, Sparkles, ChevronDown, RefreshCw, MessageSquare, Bot, Globe } from 'lucide-react';
 import { NATIVE_LANGUAGES, stopTutorSpeech } from '../utils/aiTutorEngine';
+import { speakLanguageText } from '../utils/audio';
 
 interface AIVoiceAssistantCardProps {
   isEnabled: boolean;
@@ -15,6 +16,8 @@ interface AIVoiceAssistantCardProps {
   targetTranslation?: string;
   targetPhonetic?: string;
   targetLanguageName?: string;
+  onUpdateSpeechText?: (text: string) => void;
+  onStartSpeaking?: (speaking: boolean) => void;
 }
 
 export default function AIVoiceAssistantCard({
@@ -28,7 +31,9 @@ export default function AIVoiceAssistantCard({
   targetWord,
   targetTranslation,
   targetPhonetic,
-  targetLanguageName = 'Idioma'
+  targetLanguageName = 'Idioma',
+  onUpdateSpeechText,
+  onStartSpeaking
 }: AIVoiceAssistantCardProps) {
   const [isExpanded, setIsExpanded] = useState(false); // Minimized by default as requested
   const [isIconOnly, setIsIconOnly] = useState(() => {
@@ -41,8 +46,16 @@ export default function AIVoiceAssistantCard({
   const [isHandsFree, setIsHandsFree] = useState(false);
   const [speechFeedback, setSpeechFeedback] = useState<string | null>(null);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  
+  // Local conversational history
+  const [chatHistory, setChatHistory] = useState<{ role: string; parts: { text: string }[] }[]>([]);
 
   const nativeLangConfig = NATIVE_LANGUAGES.find(l => l.code === nativeLanguageCode) || NATIVE_LANGUAGES[0];
+
+  const isHandsFreeRef = useRef(isHandsFree);
+  useEffect(() => {
+    isHandsFreeRef.current = isHandsFree;
+  }, [isHandsFree]);
 
   // Continuous hands-free recognition engine
   useEffect(() => {
@@ -68,21 +81,74 @@ export default function AIVoiceAssistantCard({
       setSpeechFeedback('🎙️ Modo Mãos Livres Ativo: Fale livremente com a Linguo!');
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = async (event: any) => {
       const lastResultIndex = event.results.length - 1;
-      const transcript = event.results[lastResultIndex][0].transcript;
-      setSpeechFeedback(`✨ Ouvi você: "${transcript}"`);
+      const result = event.results[lastResultIndex];
+      const transcript = result[0].transcript;
+      
+      setSpeechFeedback(`🎙️ Ouvindo: "${transcript}"`);
+
+      if (result.isFinal) {
+        const query = transcript.trim();
+        if (query.length === 0) return;
+
+        setSpeechFeedback(`✨ Processando: "${query}"...`);
+        recognition.stop();
+
+        try {
+          if (onStartSpeaking) onStartSpeaking(true);
+          
+          const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: query,
+              history: chatHistory,
+            }),
+          });
+
+          if (!response.ok) throw new Error("Erro na rede");
+          const data = await response.json();
+          const reply = data.text;
+
+          // Update local history
+          setChatHistory(prev => [
+            ...prev,
+            { role: "user", parts: [{ text: query }] },
+            { role: "model", parts: [{ text: reply }] }
+          ]);
+
+          if (onUpdateSpeechText) {
+            onUpdateSpeechText(reply);
+          }
+
+          // Play response via TTS
+          await speakLanguageText(reply, nativeLanguageCode);
+
+        } catch (e: any) {
+          console.error("Erro na conversação:", e);
+          setSpeechFeedback("❌ Falha na resposta da assistente.");
+          setTimeout(() => setSpeechFeedback(null), 3000);
+        } finally {
+          if (onStartSpeaking) onStartSpeaking(false);
+          
+          // Re-enable listening after speech ends if still in hands-free mode
+          if (isHandsFreeRef.current) {
+            try { recognition.start(); } catch(err){}
+          }
+        }
+      }
     };
 
     recognition.onerror = () => {
       // Re-arm in hands-free mode
-      if (isHandsFree) {
+      if (isHandsFreeRef.current) {
         try { recognition.start(); } catch (e) {}
       }
     };
 
     recognition.onend = () => {
-      if (isHandsFree) {
+      if (isHandsFreeRef.current) {
         try { recognition.start(); } catch (e) {}
       } else {
         setIsListening(false);

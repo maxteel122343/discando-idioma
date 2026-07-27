@@ -1455,8 +1455,8 @@ export default function App() {
 
           {/* AI Voice Assistant Guidance Bar (Home/Review) vs Level Badge (Music Mode) & Minimized Playlist Button */}
           <div className="flex items-center justify-between gap-3 w-full">
-            {/* AI Voice Assistant - Hidden, kept for logic only */}
-            {false && (
+            {/* AI Voice Assistant - Enabled and visible */}
+            {true && (
               <AIVoiceAssistantCard
                 isEnabled={isVoiceAssistantEnabled}
                 onToggleEnabled={() => {
@@ -1476,6 +1476,8 @@ export default function App() {
                 targetTranslation={activeTargetDetails.translation}
                 targetPhonetic={activeTargetDetails.pinyin}
                 targetLanguageName={currentLanguage.name}
+                onUpdateSpeechText={(text) => setCurrentSpeechText(text)}
+                onStartSpeaking={(speaking) => setIsAssistantSpeaking(speaking)}
               />
             )}
             {/* Music minimize button removed — vitrine always visible above dial */}
