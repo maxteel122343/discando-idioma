@@ -920,10 +920,13 @@ export default function App() {
     setIsParsingEbook(true);
     playTick();
     try {
+      const customKey = googleTtsKey || (window as any).__GOOGLE_TTS_KEY__ || localStorage.getItem('hanzi_dial_google_tts_key');
+      const apiKey = customKey !== 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0' ? customKey : undefined;
+
       const response = await fetch('/api/parse-ebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: content, targetLanguage: currentLanguage.name }),
+        body: JSON.stringify({ text: content, targetLanguage: currentLanguage.name, apiKey }),
       });
       const data = await response.json();
       if (data.sentences && data.sentences.length > 0) {

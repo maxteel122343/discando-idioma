@@ -127,6 +127,9 @@ export default function Sidebar({
 
         try {
           setIsChatSpeaking(true);
+          const customKey = (window as any).__GOOGLE_TTS_KEY__ || localStorage.getItem('hanzi_dial_google_tts_key');
+          const apiKey = customKey !== 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0' ? customKey : undefined;
+
           const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -136,7 +139,8 @@ export default function Sidebar({
                 role: h.role,
                 parts: [{ text: h.text }]
               })),
-              systemInstruction: "Você é o Tutor de Idiomas Inteligente do Linguo. Responda em português sobre qualquer dúvida de forma clara, simpática e objetiva (no máximo 3 frases)."
+              systemInstruction: "Você é o Tutor de Idiomas Inteligente do Linguo. Responda em português sobre qualquer dúvida de forma clara, simpática e objetiva (no máximo 3 frases).",
+              apiKey
             })
           });
 
@@ -236,6 +240,9 @@ export default function Sidebar({
 
     try {
       setIsChatSpeaking(true);
+      const customKey = (window as any).__GOOGLE_TTS_KEY__ || localStorage.getItem('hanzi_dial_google_tts_key');
+      const apiKey = customKey !== 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0' ? customKey : undefined;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -245,7 +252,8 @@ export default function Sidebar({
             role: h.role,
             parts: [{ text: h.text }]
           })),
-          systemInstruction: "Você é o Tutor de Idiomas Inteligente do Linguo. Responda em português sobre qualquer dúvida de forma clara, simpática e objetiva (no máximo 3 frases)."
+          systemInstruction: "Você é o Tutor de Idiomas Inteligente do Linguo. Responda em português sobre qualquer dúvida de forma clara, simpática e objetiva (no máximo 3 frases).",
+          apiKey
         })
       });
 

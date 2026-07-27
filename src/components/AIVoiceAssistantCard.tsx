@@ -147,6 +147,9 @@ export default function AIVoiceAssistantCard({
         try {
           if (onStartSpeaking) onStartSpeaking(true);
           
+          const customKey = (window as any).__GOOGLE_TTS_KEY__ || localStorage.getItem('hanzi_dial_google_tts_key');
+          const apiKey = customKey !== 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0' ? customKey : undefined;
+
           console.log('%c[Linguo Voice Assistant] Sending query to /api/chat backend...', 'color: #3b82f6;');
           const response = await fetch("/api/chat", {
             method: "POST",
@@ -154,6 +157,7 @@ export default function AIVoiceAssistantCard({
             body: JSON.stringify({
               message: query,
               history: chatHistory,
+              apiKey
             }),
           });
 
@@ -271,12 +275,16 @@ export default function AIVoiceAssistantCard({
     try {
       if (onStartSpeaking) onStartSpeaking(true);
 
+      const customKey = (window as any).__GOOGLE_TTS_KEY__ || localStorage.getItem('hanzi_dial_google_tts_key');
+      const apiKey = customKey !== 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0' ? customKey : undefined;
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: query,
           history: chatHistory,
+          apiKey
         }),
       });
 

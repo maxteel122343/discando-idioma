@@ -12,28 +12,25 @@ const PORT = 3000;
 app.use(express.json({ limit: "10mb" }));
 
 // Lazy-initialize Gemini client
-let aiClient: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI {
-  if (!aiClient) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      throw new Error("GEMINI_API_KEY environment variable is required in Settings > Secrets");
-    }
-    aiClient = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
-    });
+function getGeminiClient(customKey?: string): GoogleGenAI {
+  // Use client-provided key, fallback to GEMINI_API_KEY, fallback to GOOGLE_API_KEY if needed
+  const key = customKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!key || key === "MY_GEMINI_API_KEY") {
+    throw new Error("Chave de API do Gemini não configurada no ambiente.");
   }
-  return aiClient;
+  return new GoogleGenAI({
+    apiKey: key,
+    httpOptions: {
+      headers: {
+        "User-Agent": "aistudio-build",
+      },
+    },
+  });
 }
 
 // Endpoint to parse uploaded ebook text into interactive Chinese learning sentences
 app.post("/api/parse-ebook", async (req, res) => {
-  const { text, targetLanguage } = req.body;
+  const { text, targetLanguage, apiKey } = req.body;
   const targetLang = targetLanguage || "Mandarim (Chinês)";
 
   if (!text || typeof text !== "string" || text.trim().length === 0) {
@@ -41,7 +38,7 @@ app.post("/api/parse-ebook", async (req, res) => {
   }
 
   try {
-    const ai = getGeminiClient();
+    const ai = getGeminiClient(apiKey);
     
     const prompt = `Analise o seguinte trecho de texto ou livro no idioma ${targetLang}. 
 Extraia exatamente até 8 frases ou orações completas em ${targetLang} que façam sentido e sejam ótimas para prática de aprendizado de idiomas.
@@ -53,75 +50,60 @@ Para cada frase extraída, forneça:
 5. Uma decomposição palavra por palavra (literalBreakdown) onde cada item tem: 'char' (palavra), 'pinyin' (pronúncia) e 'translation' (tradução em português).
 
 Texto do livro/ebook:
-"""
-${text.slice(0, 3000)}
-"""`;
+${text}
+
+Retorne estritamente um vetor JSON com as frases estruturadas de acordo com o esquema definido, sem tags markdown ou comentários.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        systemInstruction: `Você é um assistente especialista em ensino de ${targetLang} para falantes de português. Extraia frases úteis do texto em ${targetLang} e responda no formato JSON estruturado seguindo o esquema fornecido.`,
         responseSchema: {
           type: Type.ARRAY,
-          description: "Lista de frases extraídas e detalhadas para aprendizado",
+          description: "List of extracted interactive learning sentences.",
           items: {
             type: Type.OBJECT,
-            required: ["characters", "pinyin", "translation", "explanation", "literalBreakdown"],
             properties: {
               characters: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: "Vetor de palavras que compõem a frase",
+                description: "Array of words or characters in target language for dialysis assembly."
               },
-              pinyin: {
-                type: Type.STRING,
-                description: "Pronúncia / guia fonético",
-              },
-              translation: {
-                type: Type.STRING,
-                description: "Tradução para o português",
-              },
-              explanation: {
-                type: Type.STRING,
-                description: "Dica de gramática ou vocabulário em português",
-              },
+              pinyin: { type: Type.STRING, description: "Phonetic romanization or pinyin guide." },
+              translation: { type: Type.STRING, description: "Portuguese translation of the full sentence." },
+              explanation: { type: Type.STRING, description: "Grammar breakdown and context explanation." },
               literalBreakdown: {
                 type: Type.ARRAY,
                 items: {
                   type: Type.OBJECT,
-                  required: ["char", "pinyin", "translation"],
                   properties: {
                     char: { type: Type.STRING },
                     pinyin: { type: Type.STRING },
-                    translation: { type: Type.STRING },
+                    translation: { type: Type.STRING }
                   },
+                  required: ["char", "pinyin", "translation"]
                 },
-                description: "Decomposição palavra por palavra",
-              },
+                description: "Word-by-word breakdown of characters."
+              }
             },
-          },
-        },
-      },
+            required: ["characters", "pinyin", "translation", "explanation", "literalBreakdown"]
+          }
+        }
+      }
     });
 
-    const parsedJson = JSON.parse(response.text || "[]");
-    
-    // Inject unique client-side IDs
-    const enrichedSentences = parsedJson.map((item: any, idx: number) => ({
-      id: `ebook-${Date.now()}-${idx}`,
-      category: "Ebook",
-      difficulty: item.characters.join("").length > 6 ? "Médio" : "Fácil",
-      ...item,
-    }));
+    const resultText = response.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!resultText) {
+      throw new Error("Resposta vazia da inteligência artificial.");
+    }
 
-    return res.json({ sentences: enrichedSentences });
-
+    const sentences = JSON.parse(resultText);
+    return res.json({ sentences });
   } catch (err: any) {
-    console.error("Erro ao analisar ebook via Gemini:", err);
+    console.error("Erro ao processar o ebook com Gemini:", err);
     return res.status(500).json({ 
-      error: "Não foi possível analisar o livro via inteligência artificial.", 
+      error: "Falha na análise da IA para o Ebook", 
       details: err.message 
     });
   }
@@ -129,7 +111,7 @@ ${text.slice(0, 3000)}
 
 // Endpoint for AI Voice Assistant conversational chat
 app.post("/api/chat", async (req, res) => {
-  const { message, history, systemInstruction } = req.body;
+  const { message, history, systemInstruction, apiKey } = req.body;
   const startTime = Date.now();
 
   console.log(`\n--- [Gemini Chat Request] ---`);
@@ -142,7 +124,7 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
-    const ai = getGeminiClient();
+    const ai = getGeminiClient(apiKey);
     const contents = history || [];
     contents.push({ role: "user", parts: [{ text: message }] });
 
@@ -206,13 +188,13 @@ app.post("/api/chat", async (req, res) => {
 
 // Endpoint to synthesize text using Gemini native voice synthesis (bypassing client-side key limits/errors)
 app.post("/api/speak", async (req, res) => {
-  const { text, lang } = req.body;
+  const { text, lang, apiKey } = req.body;
   if (!text) {
     return res.status(400).json({ error: "O texto é obrigatório para a fala." });
   }
 
   try {
-    const ai = getGeminiClient();
+    const ai = getGeminiClient(apiKey);
     console.log(`[Backend TTS Request]: "${text}" in ${lang || "auto"}`);
     
     const isChinese = lang?.toLowerCase().startsWith("zh");

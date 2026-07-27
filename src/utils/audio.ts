@@ -206,11 +206,17 @@ export function unlockMobileAudio() {
  */
 async function speakWithGoogleTTS(text: string, ttsCode: string, rate: number): Promise<boolean> {
   try {
+    const customKey = (window as any).__GOOGLE_TTS_KEY__ || 
+                      localStorage.getItem('hanzi_dial_google_tts_key') || 
+                      (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY;
+    // Don't send the hardcoded default key if it's the blocked one
+    const apiKey = customKey !== 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0' ? customKey : undefined;
+
     console.log(`%c[Audio Client] Requesting native TTS from server for: "${text}"`, 'color: #10b981;');
     const resp = await fetch("/api/speak", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, lang: ttsCode }),
+      body: JSON.stringify({ text, lang: ttsCode, apiKey }),
     });
     
     if (!resp.ok) {
