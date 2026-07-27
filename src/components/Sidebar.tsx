@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sentence, joinSentence } from '../types';
-import { speakLanguageText } from '../utils/audio';
+import { speakLanguageText, getAudioContext } from '../utils/audio';
 import { 
   Volume2, 
   HelpCircle, 
@@ -16,7 +16,13 @@ import {
   BookOpenCheck,
   CheckCircle,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Bot,
+  MessageSquare,
+  Mic,
+  MicOff,
+  Sparkles,
+  Send
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -38,7 +44,7 @@ interface SidebarProps {
   ttsCode?: string;
 }
 
-type TabType = 'home' | 'categories' | 'review' | 'progress' | 'profile';
+type TabType = 'home' | 'categories' | 'review' | 'progress' | 'profile' | 'chat';
 
 export default function Sidebar({
   sentences,
@@ -61,6 +67,226 @@ export default function Sidebar({
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [expandedSentenceId, setExpandedSentenceId] = useState<string | null>(null);
+
+  // Dedicated Chat Tab States
+  const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([
+    { role: 'model', text: 'Olá! Sou sua inteligência conversacional livre do Linguo. Pergunte-me qualquer dúvida sobre idiomas, gramática ou converse comigo livremente por texto ou ativando a voz!' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatListening, setIsChatListening] = useState(false);
+  const [isChatHandsFree, setIsChatHandsFree] = useState(false);
+  const [chatFeedback, setChatFeedback] = useState<string | null>(null);
+  const [isChatSpeaking, setIsChatSpeaking] = useState(false);
+
+  const isChatProcessingRef = useRef(false);
+  const isChatHandsFreeRef = useRef(isChatHandsFree);
+  useEffect(() => {
+    isChatHandsFreeRef.current = isChatHandsFree;
+  }, [isChatHandsFree]);
+
+  // Sidebar specific hands-free voice loop
+  useEffect(() => {
+    if (!isChatHandsFree || activeTab !== 'chat') {
+      setIsChatListening(false);
+      return;
+    }
+
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      setChatFeedback('💡 Reconhecimento contínuo de voz não suportado neste navegador.');
+      setIsChatHandsFree(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsChatListening(true);
+      setChatFeedback('🎙️ Modo Conversa Livre Ativo: Pode falar!');
+      console.log('%c[Sidebar AI Chat] Speech recognition started.', 'color: #10b981; font-weight: bold;');
+    };
+
+    recognition.onresult = async (event: any) => {
+      const lastResultIndex = event.results.length - 1;
+      const result = event.results[lastResultIndex];
+      const transcript = result[0].transcript;
+      setChatFeedback(`🎙️ Ouvindo: "${transcript}"`);
+
+      if (result.isFinal) {
+        const query = transcript.trim();
+        if (query.length === 0) return;
+
+        console.log(`%c[Sidebar AI Chat] Final voice query: "${query}"`, 'color: #3b82f6; font-weight: bold;');
+        setChatFeedback('✨ Processando pergunta...');
+        
+        isChatProcessingRef.current = true;
+        recognition.stop();
+
+        try {
+          setIsChatSpeaking(true);
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: query,
+              history: chatHistory.map(h => ({
+                role: h.role,
+                parts: [{ text: h.text }]
+              })),
+              systemInstruction: "Você é o Tutor de Idiomas Inteligente do Linguo. Responda em português sobre qualquer dúvida de forma clara, simpática e objetiva (no máximo 3 frases)."
+            })
+          });
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          const reply = data.text;
+          const audio = data.audio;
+
+          setChatHistory(prev => [...prev, { role: 'user', text: query }, { role: 'model', text: reply }]);
+          setChatFeedback(null);
+
+          if (audio) {
+            console.log('%c[Sidebar AI Chat] Playing native Gemini voice...', 'color: #10b981;');
+            let playedOk = false;
+            try {
+              const ctx = getAudioContext();
+              const rawBinary = window.atob(audio);
+              const bytes = new Uint8Array(rawBinary.length);
+              for (let i = 0; i < rawBinary.length; i++) {
+                bytes[i] = rawBinary.charCodeAt(i);
+              }
+              const audioBuffer = await ctx.decodeAudioData(
+                bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+              );
+              
+              // Play audio buffer with safe 8s timeout
+              playedOk = await new Promise<boolean>((res) => {
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(ctx.destination);
+                let resolved = false;
+                const timer = setTimeout(() => {
+                  try { source.stop(); } catch(e){}
+                  if (!resolved) { resolved = true; res(false); }
+                }, 8000);
+                source.onended = () => {
+                  clearTimeout(timer);
+                  if (!resolved) { resolved = true; res(true); }
+                };
+                source.start(0);
+              });
+            } catch (playErr) {
+              console.error("Native play error in Sidebar:", playErr);
+            }
+
+            if (!playedOk) {
+              await speakLanguageText(reply, 'pt-BR');
+            }
+          } else {
+            await speakLanguageText(reply, 'pt-BR');
+          }
+        } catch (err: any) {
+          console.error(err);
+          setChatFeedback('❌ Erro ao obter resposta.');
+        } finally {
+          setIsChatSpeaking(false);
+          isChatProcessingRef.current = false;
+          // Re-enable microphone in hands-free
+          if (isChatHandsFreeRef.current) {
+            try { recognition.start(); } catch(e){}
+          }
+        }
+      }
+    };
+
+    recognition.onerror = () => {
+      if (isChatHandsFreeRef.current && !isChatProcessingRef.current) {
+        try { recognition.start(); } catch(e){}
+      }
+    };
+
+    recognition.onend = () => {
+      if (isChatHandsFreeRef.current && !isChatProcessingRef.current) {
+        try { recognition.start(); } catch(e){}
+      } else if (!isChatHandsFreeRef.current) {
+        setIsChatListening(false);
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch(e){}
+
+    return () => {
+      try { recognition.stop(); } catch(e){}
+    };
+  }, [isChatHandsFree, activeTab]);
+
+  const handleSendChatText = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = chatInput.trim();
+    if (query.length === 0) return;
+
+    setChatInput('');
+    setChatFeedback('✨ Pensando...');
+    isChatProcessingRef.current = true;
+
+    try {
+      setIsChatSpeaking(true);
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          history: chatHistory.map(h => ({
+            role: h.role,
+            parts: [{ text: h.text }]
+          })),
+          systemInstruction: "Você é o Tutor de Idiomas Inteligente do Linguo. Responda em português sobre qualquer dúvida de forma clara, simpática e objetiva (no máximo 3 frases)."
+        })
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const reply = data.text;
+      const audio = data.audio;
+
+      setChatHistory(prev => [...prev, { role: 'user', text: query }, { role: 'model', text: reply }]);
+      setChatFeedback(null);
+
+      if (audio) {
+        try {
+          const ctx = getAudioContext();
+          const rawBinary = window.atob(audio);
+          const bytes = new Uint8Array(rawBinary.length);
+          for (let i = 0; i < rawBinary.length; i++) {
+            bytes[i] = rawBinary.charCodeAt(i);
+          }
+          const audioBuffer = await ctx.decodeAudioData(
+            bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+          );
+          // Play background audio without blocking
+          const source = ctx.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(ctx.destination);
+          source.start(0);
+        } catch (playErr) {
+          speakLanguageText(reply, 'pt-BR');
+        }
+      } else {
+        speakLanguageText(reply, 'pt-BR');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setChatFeedback('❌ Erro na resposta.');
+    } finally {
+      setIsChatSpeaking(false);
+      isChatProcessingRef.current = false;
+    }
+  };
 
   // Compute stats
   const totalSentences = sentences.length;
@@ -669,6 +895,94 @@ export default function Sidebar({
             </motion.div>
           )}
 
+          {/* TAB 5: AI CHAT (Dedicated Testing Zone) */}
+          {activeTab === 'chat' && (
+            <motion.div
+              key="chat-tab"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="space-y-4 flex flex-col h-[480px]"
+            >
+              <div className="bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100 dark:border-indigo-900/20 p-3 rounded-2xl flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-650 text-white shadow-sm">
+                  <Bot size={16} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Canal Livre de Conversação</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">Tire qualquer dúvida linguística sem limites</p>
+                </div>
+              </div>
+
+              {/* Chat History Panel */}
+              <div className="flex-1 overflow-y-auto space-y-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 custom-scrollbar max-h-[290px] min-h-[220px]">
+                {chatHistory.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-2xl text-xs max-w-[85%] leading-relaxed ${
+                      msg.role === 'user'
+                        ? 'bg-indigo-600 text-white ml-auto font-semibold shadow-sm'
+                        : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800/80'
+                    }`}
+                  >
+                    <p className="font-sans whitespace-pre-wrap">{msg.text}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Feedback & Status Message */}
+              {chatFeedback && (
+                <div className="text-[10px] text-center font-bold text-amber-500 animate-pulse">
+                  {chatFeedback}
+                </div>
+              )}
+
+              {/* Input & Voice Controls */}
+              <div className="space-y-2.5 mt-auto">
+                <form onSubmit={handleSendChatText} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Tire dúvidas sobre pronúncia, gramática..."
+                    className="flex-1 px-3 py-2 text-xs rounded-xl bg-white dark:bg-slate-950 text-slate-850 dark:text-slate-100 placeholder-slate-400 border border-slate-200 dark:border-slate-800 outline-none focus:border-indigo-500 font-semibold"
+                  />
+                  <button
+                    type="submit"
+                    className="p-2 rounded-xl bg-indigo-650 hover:bg-indigo-600 text-white active:scale-95 transition-all shadow cursor-pointer"
+                  >
+                    <Send size={15} />
+                  </button>
+                </form>
+
+                <div className="flex items-center justify-between gap-2">
+                  {/* Hands Free Voice Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      getAudioContext(); // Unlock audio on click gesture
+                      setIsChatHandsFree(!isChatHandsFree);
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border active:scale-95 cursor-pointer ${
+                      isChatHandsFree
+                        ? "bg-red-500 text-white border-red-400 animate-pulse shadow-md"
+                        : "bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
+                    }`}
+                  >
+                    {isChatHandsFree ? <MicOff size={13} /> : <Mic size={13} />}
+                    <span>{isChatHandsFree ? "Mãos Livres ON" : "Ativar Voz"}</span>
+                  </button>
+
+                  {/* Audio Context Status Indicator */}
+                  <div className="text-[9px] font-mono text-slate-400 dark:text-slate-500 font-bold bg-slate-100 dark:bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-200/50 dark:border-slate-800 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-ping"></span>
+                    <span>Áudio: Ativo</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </div>
 
@@ -722,6 +1036,14 @@ export default function Sidebar({
         >
           <TrendingUp size={18} />
           <span>Progresso</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-all ${activeTab === 'chat' ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-500'}`}
+        >
+          <Bot size={18} />
+          <span>IA Chat</span>
         </button>
         
         <button
