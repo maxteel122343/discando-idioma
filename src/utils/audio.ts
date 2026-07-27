@@ -205,30 +205,18 @@ export function unlockMobileAudio() {
  * Returns true on success, false if unavailable or errored.
  */
 async function speakWithGoogleTTS(text: string, ttsCode: string, rate: number): Promise<boolean> {
-  const apiKey: string =
-    (window as any).__GOOGLE_TTS_KEY__ ||
-    localStorage.getItem('hanzi_dial_google_tts_key') ||
-    (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY ||
-    'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0';
-  if (!apiKey) return false;
-
-  const prefix = ttsCode.split('-')[0].toLowerCase();
-  const voiceConfig = GOOGLE_TTS_VOICES[prefix] || { name: `${ttsCode}-Wavenet-A`, ssmlGender: 'FEMALE' };
-
   try {
-    const resp = await fetch(
-      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input: { text },
-          voice: { languageCode: ttsCode, name: voiceConfig.name, ssmlGender: voiceConfig.ssmlGender },
-          audioConfig: { audioEncoding: 'MP3', speakingRate: rate },
-        }),
-      }
-    );
-    if (!resp.ok) return false;
+    console.log(`%c[Audio Client] Requesting native TTS from server for: "${text}"`, 'color: #10b981;');
+    const resp = await fetch("/api/speak", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, lang: ttsCode }),
+    });
+    
+    if (!resp.ok) {
+      console.warn(`[Audio Client] Backend TTS responded with status: ${resp.status}`);
+      return false;
+    }
     const data = await resp.json();
     if (!data.audioContent) return false;
 
@@ -253,7 +241,7 @@ async function speakWithGoogleTTS(text: string, ttsCode: string, rate: number): 
     await audio.play();
     return true;
   } catch (e) {
-    console.warn('Google TTS failed on mobile, falling back to Web Speech API', e);
+    console.warn('Backend TTS failed, falling back to Web Speech API', e);
     return false;
   }
 }

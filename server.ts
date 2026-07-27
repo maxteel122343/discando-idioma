@@ -204,6 +204,45 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+// Endpoint to synthesize text using Gemini native voice synthesis (bypassing client-side key limits/errors)
+app.post("/api/speak", async (req, res) => {
+  const { text, lang } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: "O texto é obrigatório para a fala." });
+  }
+
+  try {
+    const ai = getGeminiClient();
+    console.log(`[Backend TTS Request]: "${text}" in ${lang || "auto"}`);
+    
+    const isChinese = lang?.toLowerCase().startsWith("zh");
+    const voiceName = isChinese ? "Puck" : "Kore"; // Puck for Chinese, Kore for friendly female Portuguese/English
+
+    const ttsResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ role: "user", parts: [{ text }] }],
+      config: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName } }
+        }
+      }
+    });
+
+    const ttsParts = ttsResponse.candidates?.[0]?.content?.parts || [];
+    const audioPart = ttsParts.find((p: any) => p.inlineData?.data);
+    
+    if (audioPart) {
+      console.log(`[Backend TTS Success]: Generated base64 audio content.`);
+      return res.json({ audioContent: audioPart.inlineData.data });
+    }
+    throw new Error("Nenhum dado de áudio retornado pelo modelo Gemini.");
+  } catch (err: any) {
+    console.error("[Backend TTS Error]:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Configure Vite or Static files depending on environment
 async function setupViteAndListen() {
   if (process.env.NODE_ENV !== "production") {
