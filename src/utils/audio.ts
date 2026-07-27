@@ -176,7 +176,29 @@ const GOOGLE_TTS_VOICES: Record<string, { name: string; ssmlGender: string }> = 
   'ko': { name: 'ko-KR-Neural2-A',  ssmlGender: 'FEMALE' },
 };
 
-let googleTtsAudio: HTMLAudioElement | null = null;
+// Shared Audio element for mobile browser unlock
+let sharedTtsAudio: HTMLAudioElement | null = null;
+
+export function getSharedTtsAudio(): HTMLAudioElement {
+  if (!sharedTtsAudio && typeof window !== 'undefined') {
+    sharedTtsAudio = new Audio();
+    // Set a tiny silent audio source
+    sharedTtsAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAAA';
+  }
+  return sharedTtsAudio!;
+}
+
+// Function to call on user click/interaction to unlock audio
+export function unlockMobileAudio() {
+  try {
+    const audio = getSharedTtsAudio();
+    if (audio) {
+      audio.play().catch(e => console.log('Audio unlock check:', e));
+    }
+  } catch (e) {
+    console.warn('Failed to unlock mobile audio', e);
+  }
+}
 
 /**
  * Speaks text via Google Cloud TTS API (neural voices).
@@ -220,16 +242,15 @@ async function speakWithGoogleTTS(text: string, ttsCode: string, rate: number): 
     const blob = new Blob([bytes], { type: 'audio/mp3' });
     const audioUrl = URL.createObjectURL(blob);
 
-    if (googleTtsAudio) {
-      googleTtsAudio.pause();
-    }
-    googleTtsAudio = new Audio(audioUrl);
+    const audio = getSharedTtsAudio();
+    audio.pause();
+    audio.src = audioUrl;
     
     // Revoke object URL after playing or when errors occur to save memory
-    googleTtsAudio.onended = () => URL.revokeObjectURL(audioUrl);
-    googleTtsAudio.onerror = () => URL.revokeObjectURL(audioUrl);
+    audio.onended = () => URL.revokeObjectURL(audioUrl);
+    audio.onerror = () => URL.revokeObjectURL(audioUrl);
     
-    await googleTtsAudio.play();
+    await audio.play();
     return true;
   } catch (e) {
     console.warn('Google TTS failed on mobile, falling back to Web Speech API', e);

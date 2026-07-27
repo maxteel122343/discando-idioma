@@ -157,6 +157,12 @@ export const MusicPlayerPanel: React.FC<MusicPlayerPanelProps> = ({
         }
       } else if (currentSong?.audioUrl && audioRef.current) {
         audioRef.current.play().catch((e) => console.log('Audio autoplay prevented', e));
+      } else {
+        // No backing track audioUrl, default to speaking the sentence once via TTS
+        const activeSentence = sentences[activeSentenceIndex];
+        if (activeSentence) {
+          onSpeakSentence(joinSentence(activeSentence.characters));
+        }
       }
     } else {
       if (audioRef.current) {

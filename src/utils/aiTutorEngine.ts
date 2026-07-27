@@ -4,6 +4,8 @@
  * Uses Google Cloud TTS (Neural2) as primary voice, with Web Speech API as fallback.
  */
 
+import { getSharedTtsAudio } from './audio';
+
 // ─── Google Cloud TTS (Neural2) ───────────────────────────────────────────────
 const GOOGLE_TUTOR_VOICES: Record<string, { name: string; gender: string }> = {
   'pt': { name: 'pt-BR-Neural2-A', gender: 'FEMALE' },
@@ -15,8 +17,6 @@ const GOOGLE_TUTOR_VOICES: Record<string, { name: string; gender: string }> = {
   'ja': { name: 'ja-JP-Neural2-B', gender: 'FEMALE' },
   'ko': { name: 'ko-KR-Neural2-A', gender: 'FEMALE' },
 };
-
-let _googleTtsAudio: HTMLAudioElement | null = null;
 
 async function _speakGoogleTTS(text: string, langCode: string, rate: number): Promise<boolean> {
   // Check runtime key first (set via Settings UI), then build-time env var
@@ -44,7 +44,6 @@ async function _speakGoogleTTS(text: string, langCode: string, rate: number): Pr
     if (!resp.ok) return false;
     const data = await resp.json();
     if (!data.audioContent) return false;
-    if (_googleTtsAudio) _googleTtsAudio.pause();
     
     // Decode base64 to raw binary bytes to build a Blob object (safest for mobile browser audio tags)
     const binaryString = window.atob(data.audioContent);
@@ -56,17 +55,20 @@ async function _speakGoogleTTS(text: string, langCode: string, rate: number): Pr
     const blob = new Blob([bytes], { type: 'audio/mp3' });
     const audioUrl = URL.createObjectURL(blob);
 
-    _googleTtsAudio = new Audio(audioUrl);
+    const audio = getSharedTtsAudio();
+    audio.pause();
+    audio.src = audioUrl;
+
     await new Promise<void>((res) => {
-      _googleTtsAudio!.onended = () => {
+      audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
         res();
       };
-      _googleTtsAudio!.onerror = () => {
+      audio.onerror = () => {
         URL.revokeObjectURL(audioUrl);
         res();
       };
-      _googleTtsAudio!.play().catch((err) => {
+      audio.play().catch((err) => {
         console.warn('Google Cloud TTS play blocked on mobile', err);
         URL.revokeObjectURL(audioUrl);
         res();

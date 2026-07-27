@@ -100,8 +100,36 @@ export default function AIVoiceAssistantCard({
     };
   }, [isHandsFree]);
 
+  // Helper to request microphone permission explicitly on user click
+  const requestMicrophonePermission = async (): Promise<boolean> => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop()); // release mic immediately
+        return true;
+      } catch (err) {
+        console.warn("Microphone access denied", err);
+        setSpeechFeedback("❌ Permissão de microfone negada. Ative nas configurações do navegador.");
+        setTimeout(() => setSpeechFeedback(null), 5000);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleToggleHandsFree = async () => {
+    if (!isHandsFree) {
+      const permitted = await requestMicrophonePermission();
+      if (permitted) {
+        setIsHandsFree(true);
+      }
+    } else {
+      setIsHandsFree(false);
+    }
+  };
+
   // Voice recording test for pronunciation practice
-  const handleStartPronunciationPractice = () => {
+  const handleStartPronunciationPractice = async () => {
     stopTutorSpeech();
     
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -109,6 +137,9 @@ export default function AIVoiceAssistantCard({
       setTimeout(() => setSpeechFeedback(null), 3000);
       return;
     }
+
+    const permitted = await requestMicrophonePermission();
+    if (!permitted) return;
 
     try {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -215,7 +246,7 @@ export default function AIVoiceAssistantCard({
 
           {/* Hands Free Voice Toggle */}
           <button
-            onClick={() => setIsHandsFree(!isHandsFree)}
+            onClick={handleToggleHandsFree}
             className={`px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold transition-all border flex items-center gap-1 cursor-pointer ${
               isHandsFree
                 ? "bg-amber-400 text-slate-950 border-amber-300 shadow-md animate-pulse"

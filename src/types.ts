@@ -24,8 +24,13 @@ export interface Sentence {
   pinyin: string;       // Phonetic guide or pronunciation
   translation: string;  // Translation
   category: string;     // Difficulty or category tag
-  difficulty?: 'Fácil' | 'Médio' | 'Avançado';
+  difficulty?: 'Fácil' | 'Médio' | 'Avançado' | 'Difícil';
   explanation?: string; // Grammar/usage tip
+  literalBreakdown?: {
+    char: string;
+    pinyin: string;
+    translation: string;
+  }[];
 }
 
 export function joinSentence(characters: string[]): string {

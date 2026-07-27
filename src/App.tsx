@@ -16,7 +16,7 @@ import { LANGUAGES, LanguageConfig } from './data/languages';
 import { PRESET_SONGS, SongTrack } from './data/musicPlaylist';
 import { PRESET_POEMS, PoemTrack } from './data/poetryPlaylist';
 import { Sentence, joinSentence } from './types';
-import { playFanfare, playTick, speakLanguageText } from './utils/audio';
+import { playFanfare, playTick, speakLanguageText, unlockMobileAudio } from './utils/audio';
 import { 
   speakTutorSequence, 
   buildWordGuidanceSequence, 
@@ -406,9 +406,24 @@ export default function App() {
 
   // Settings popup visibility
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-   const [googleTtsKey, setGoogleTtsKey] = useState<string>(() => {
+  const [googleTtsKey, setGoogleTtsKey] = useState<string>(() => {
     return localStorage.getItem('hanzi_dial_google_tts_key') || 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0';
   });
+
+  // One-time user interaction listener to unlock audio on mobile devices
+  useEffect(() => {
+    const handleUnlock = () => {
+      unlockMobileAudio();
+      document.removeEventListener('click', handleUnlock);
+      document.removeEventListener('touchstart', handleUnlock);
+    };
+    document.addEventListener('click', handleUnlock);
+    document.addEventListener('touchstart', handleUnlock);
+    return () => {
+      document.removeEventListener('click', handleUnlock);
+      document.removeEventListener('touchstart', handleUnlock);
+    };
+  }, []);
 
   // Ebook states (defaulting to Ebook mode active by default)
   const [isEbookMode, setIsEbookMode] = useState<boolean>(() => {
