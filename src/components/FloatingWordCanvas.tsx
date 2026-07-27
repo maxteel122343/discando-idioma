@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FloatingWord, Sentence } from '../types';
 import { LanguageConfig } from '../data/languages';
 import { playTick, playDialRelease, playSuccess, playError } from '../utils/audio';
-import { Sparkles, Trash2, HelpCircle, AlertCircle, RefreshCw, Globe, Palette, Lightbulb, ChevronDown, Check, LayoutGrid, Volume2 } from 'lucide-react';
+import { Sparkles, Trash2, HelpCircle, AlertCircle, RefreshCw, Globe, Palette, Lightbulb, ChevronDown, Check, LayoutGrid, Volume2, Mic, MicOff } from 'lucide-react';
 
 interface FloatingWordCanvasProps {
   sentences: Sentence[];
@@ -80,6 +80,9 @@ export default function FloatingWordCanvas({
   const [hintWordId, setHintWordId] = useState<string | null>(null);
   const [draggedWordId, setDraggedWordId] = useState<string | null>(null);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [isVoiceDialActive, setIsVoiceDialActive] = useState(false);
+  const [voiceDialFeedback, setVoiceDialFeedback] = useState<string | null>(null);
+  const [listeningWordId, setListeningWordId] = useState<string | null>(null);
 
   const getFontSize = (text: string) => {
     if (text.length <= 1) return "text-sm sm:text-2xl";
@@ -507,7 +510,7 @@ export default function FloatingWordCanvas({
     }
   };
 
-  // Single click / tap to dial word card seamlessly
+  // Single click / tap to start focused pronunciation practice for the word card
   const handleWordCardClick = (word: FloatingWord) => {
     // Bring to top
     setTopZIndex((prev) => {
@@ -518,7 +521,54 @@ export default function FloatingWordCanvas({
       return nextZ;
     });
 
-    handleWordDialed(word);
+    if (listeningWordId) return; // avoid double trigger
+
+    // Fallback: If no mic support, just dial immediately
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      handleWordDialed(word);
+      return;
+    }
+
+    playTick();
+    setListeningWordId(word.id);
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = currentLanguage?.ttsCode || 'zh-CN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript.trim();
+      console.log(`[Focused Voice Dial] Heard: "${transcript}" (Expected: "${word.text}")`);
+
+      const cleanTranscript = transcript.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
+      const cleanExpected = word.text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
+
+      if (cleanTranscript.includes(cleanExpected) || cleanExpected.includes(cleanTranscript)) {
+        playSuccess();
+        handleWordDialed(word);
+      } else {
+        playError();
+        setGlowState('error');
+        setTimeout(() => setGlowState('idle'), 1000);
+      }
+      setListeningWordId(null);
+    };
+
+    recognition.onerror = () => {
+      setListeningWordId(null);
+    };
+
+    recognition.onend = () => {
+      setListeningWordId(null);
+    };
+
+    try {
+      recognition.start();
+    } catch(e) {
+      setListeningWordId(null);
+    }
   };
 
   // Provide a hint: highlight the next required character
@@ -558,6 +608,104 @@ export default function FloatingWordCanvas({
   const nextRequiredChar = (activeTargetSentence && activeSequence.length < activeTargetSentence.characters.length)
     ? activeTargetSentence.characters[activeSequence.length]
     : null;
+
+  // Speech Recognition loop for Voice Dialer
+  const isVoiceDialActiveRef = useRef(isVoiceDialActive);
+  const nextRequiredCharRef = useRef(nextRequiredChar);
+  const wordsRef = useRef(words);
+
+  useEffect(() => {
+    isVoiceDialActiveRef.current = isVoiceDialActive;
+  }, [isVoiceDialActive]);
+
+  useEffect(() => {
+    nextRequiredCharRef.current = nextRequiredChar;
+  }, [nextRequiredChar]);
+
+  useEffect(() => {
+    wordsRef.current = words;
+  }, [words]);
+
+  useEffect(() => {
+    if (!isVoiceDialActive) {
+      setVoiceDialFeedback(null);
+      return;
+    }
+
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      setVoiceDialFeedback('💡 Dica: Diga a palavra em voz alta!');
+      setIsVoiceDialActive(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    // Configure recognition based on current study language
+    recognition.lang = currentLanguage?.ttsCode || 'zh-CN';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setVoiceDialFeedback(`🎙️ Ouvindo... Diga: "${nextRequiredCharRef.current || ''}"`);
+    };
+
+    recognition.onresult = (event: any) => {
+      if (!isVoiceDialActiveRef.current) return;
+      const lastResultIndex = event.results.length - 1;
+      const result = event.results[lastResultIndex];
+      const transcript = result[0].transcript.trim();
+
+      const expected = nextRequiredCharRef.current;
+      if (!expected) return;
+
+      setVoiceDialFeedback(`🎙️ Ouvindo... Diga: "${expected}"`);
+
+      // Normalization for comparison (removes punctuation, lowercases)
+      const cleanTranscript = transcript.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
+      const cleanExpected = expected.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
+
+      // Check if they match
+      if (cleanTranscript.includes(cleanExpected) || cleanExpected.includes(cleanTranscript)) {
+        const matchingWord = wordsRef.current.find(w => w.text === expected && !w.isPlaced);
+        if (matchingWord) {
+          // Stop mic temporarily to avoid capture of success bells/voice guide
+          try { recognition.stop(); } catch(e){}
+          setVoiceDialFeedback(`✨ Correto! Discando: "${expected}"...`);
+
+          // Perform dial
+          handleWordDialed(matchingWord);
+
+          // Restart listening after brief delay
+          setTimeout(() => {
+            if (isVoiceDialActiveRef.current) {
+              try { recognition.start(); } catch(e){}
+            }
+          }, 1500);
+        }
+      }
+    };
+
+    recognition.onerror = () => {
+      if (isVoiceDialActiveRef.current) {
+        try { recognition.start(); } catch(e){}
+      }
+    };
+
+    recognition.onend = () => {
+      if (isVoiceDialActiveRef.current) {
+        try { recognition.start(); } catch(e){}
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch(e){}
+
+    return () => {
+      try { recognition.stop(); } catch(e){}
+    };
+  }, [isVoiceDialActive, currentLanguage]);
 
   return (
     <div 
@@ -724,6 +872,20 @@ export default function FloatingWordCanvas({
             </button>
           )}
 
+          {/* Always Active Voice Dialer Toggle */}
+          <button
+            onClick={() => { playTick(); setIsVoiceDialActive(!isVoiceDialActive); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
+              isVoiceDialActive
+                ? "bg-red-650 text-white border-red-700 shadow-md ring-2 ring-red-400/40 animate-pulse font-black"
+                : "bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 border-indigo-100 dark:border-indigo-900/50 hover:bg-slate-100"
+            }`}
+            title="Discar por Voz: Fale a palavra correta para discá-la automaticamente"
+          >
+            {isVoiceDialActive ? <Mic size={13} className="text-white animate-bounce" /> : <MicOff size={13} />}
+            <span>Voz {isVoiceDialActive ? "Ativa" : "Desativa"}</span>
+          </button>
+
         </div>
 
         {/* Right Side Action Buttons */}
@@ -775,6 +937,8 @@ export default function FloatingWordCanvas({
             // Generate slight hand-crafted rotation effect based on index
             const rotationDegrees = (idx % 3) * 6 - 6;
 
+            const isListeningThis = listeningWordId === word.id;
+
             return (
               <motion.div
                 key={word.id}
@@ -801,7 +965,9 @@ export default function FloatingWordCanvas({
                   className={`
                     relative flex flex-col items-center justify-center ${getPaddingClass(word.text)} rounded-2xl sm:rounded-3xl select-none transition-all border-2
                     ${
-                      isMonochrome
+                      isListeningThis
+                        ? 'bg-red-500 text-white border-red-600 ring-4 ring-red-400/80 scale-110 shadow-2xl animate-pulse'
+                        : isMonochrome
                         ? isHinted
                           ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-4 border-zinc-900 dark:border-zinc-100 ring-4 ring-zinc-400/80 animate-bounce scale-110 shadow-2xl'
                           : 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-900 dark:border-zinc-100 shadow-md hover:bg-zinc-100 dark:hover:bg-zinc-800'
@@ -811,13 +977,20 @@ export default function FloatingWordCanvas({
                     }
                   `}
                 >
+                  {isListeningThis && (
+                    <div className="absolute inset-0 bg-red-650 rounded-2xl sm:rounded-3xl flex items-center justify-center text-white z-20 animate-pulse border-2 border-red-500">
+                      <Mic size={16} className="animate-bounce" />
+                    </div>
+                  )}
                   <span className="block text-center font-black tracking-tight mb-0.5 max-w-[120px] sm:max-w-[200px] truncate leading-tight"><span className={getFontSize(word.text)}>{word.text}</span></span>
                   <span className={`block text-[7px] sm:text-[8px] font-black tracking-widest uppercase opacity-85 ${
-                    isHinted 
+                    isListeningThis
+                      ? 'text-white'
+                      : isHinted 
                       ? isMonochrome ? 'text-zinc-200 dark:text-zinc-800 font-extrabold' : 'text-amber-950 font-extrabold' 
                       : isMonochrome ? 'text-zinc-500 dark:text-zinc-400' : colors.text
                   }`}>
-                    {isHinted ? '▶ PRÓXIMA' : `${phoneticLabel}`}
+                    {isListeningThis ? 'Gravando' : isHinted ? '▶ PRÓXIMA' : `${phoneticLabel}`}
                   </span>
                 </div>
               </motion.div>
@@ -956,6 +1129,14 @@ export default function FloatingWordCanvas({
       <div className="hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-white dark:bg-slate-900 border-2 border-indigo-100 dark:border-indigo-950 px-4 py-1.5 rounded-full text-[11px] text-slate-500 dark:text-slate-400 shadow-md text-center max-w-[90%] select-none pointer-events-none font-medium">
         💡 Arraste e solte ideogramas no <strong className="text-indigo-600 dark:text-indigo-400 font-bold">disco central</strong> para discar
       </div>
+
+      {/* Voice Dial Feedback Toast/Sub-header */}
+      {isVoiceDialActive && voiceDialFeedback && (
+        <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-2 bg-red-650 text-white px-4 py-2 rounded-full shadow-lg border border-red-500 text-xs font-bold animate-pulse">
+          <Mic size={14} className="animate-ping text-white shrink-0" />
+          <span>{voiceDialFeedback}</span>
+        </div>
+      )}
     </div>
   );
 }
