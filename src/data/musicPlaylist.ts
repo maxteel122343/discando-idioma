@@ -1306,5 +1306,277 @@ export const PRESET_SONGS: SongTrack[] = [
         explanation: '\'Cause (abreviação de because) + Thriller night (noite emocionante/de terror).'
       }
     ]
+  },
+  {
+    id: 'song-the-call',
+    title: 'The Call',
+    artist: 'Backstreet Boys',
+    coverEmoji: '📞',
+    coverGradient: 'from-blue-600 to-indigo-900',
+    language: 'Inglês',
+    audioUrl: '/(melody.az) 6136 - The Call.mp3',
+    sentences: [
+      {
+        id: 'tc-1',
+        characters: ['Hello'],
+        pinyin: 'helóu',
+        translation: 'Alô?',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Hello é usado para saudações e para atender o telefone.'
+      },
+      {
+        id: 'tc-2',
+        characters: ['Hi', 'it\'s', 'me', 'what\'s', 'up', 'baby'],
+        pinyin: 'hái its mí uóts áp béibi',
+        translation: 'Oi, sou eu, o que está pegando, amor?',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'What\'s up é uma gíria comum para perguntar o que há de novo ou o que está acontecendo.'
+      },
+      {
+        id: 'tc-3',
+        characters: ['I\'m', 'sorry', 'listen', 'I\'m', 'gonna', 'be', 'late', 'tonight'],
+        pinyin: 'áim sóri lísen áim góna bí léit tunáit',
+        translation: 'Me desculpe, escute, eu vou me atrasar esta noite.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Gonna é a contração informal de going to (vou/irá).'
+      },
+      {
+        id: 'tc-4',
+        characters: ['So', 'don\'t', 'stay', 'up', 'and', 'wait', 'for', 'me', 'okay'],
+        pinyin: 'sóu dóunt stéi áp énd uéit fór mí oukéi',
+        translation: 'Então, não fique acordada esperando por mim, ok?',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Stay up significa ficar acordado até mais tarde.'
+      },
+      {
+        id: 'tc-5',
+        characters: ['Where', 'are', 'you'],
+        pinyin: 'uéar ár iú',
+        translation: 'Onde você está?',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Where are you é a pergunta clássica de localização.'
+      },
+      {
+        id: 'tc-6',
+        characters: ['Wait', 'wait', 'say', 'that', 'again'],
+        pinyin: 'uéit uéit séi dét aghén',
+        translation: 'Espere, espere, fale isso de novo?',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Say that again pede para repetir o que foi falado.'
+      },
+      {
+        id: 'tc-7',
+        characters: ['You\'re', 'really', 'dropping', 'out', 'I', 'think', 'my', 'battery', 'must', 'be', 'low'],
+        pinyin: 'iúr ríli dróping áut ái tínc mái bétəri mâst bí lóu',
+        translation: 'Sua ligação está cortando, acho que minha bateria deve estar fraca.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Dropping out no contexto telefônico significa que o sinal/voz está falhando.'
+      },
+      {
+        id: 'tc-8',
+        characters: ['Listen', 'if', 'you', 'can', 'hear', 'me', 'we\'re', 'going', 'to', 'a', 'place', 'nearby', 'alright'],
+        pinyin: 'lísen íf iú kén híar mí uíar góuing tu e pléis níarbái olráit',
+        translation: 'Escute, se você puder me ouvir, nós estamos indo para um lugar por perto, tudo bem?',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Nearby significa por perto ou próximo.'
+      },
+      {
+        id: 'tc-9',
+        characters: ['Gotta', 'go'],
+        pinyin: 'góda góu',
+        translation: 'Tenho que ir.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Gotta go é a redução coloquial de have got to go.'
+      },
+      {
+        id: 'tc-10',
+        characters: ['Let', 'me', 'tell', 'you', 'the', 'story'],
+        pinyin: 'lét mí tél iú de istóri',
+        translation: 'Deixe-me te contar a história.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Let me tell you (deixe-me dizer/contar).'
+      },
+      {
+        id: 'tc-11',
+        characters: ['Bout', 'the', 'call', 'that', 'changed', 'my', 'destiny'],
+        pinyin: 'báut de cól dét tchéindjd mái déstini',
+        translation: 'Sobre a ligação que mudou meu destino.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Bout é a abreviação informal de about.'
+      },
+      {
+        id: 'tc-12',
+        characters: ['Me', 'and', 'my', 'boys', 'went', 'out'],
+        pinyin: 'mí énd mái bóis uént áut',
+        translation: 'Eu e os meus amigos saímos.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Went out é o passado do phrasal verb go out (sair).'
+      },
+      {
+        id: 'tc-13',
+        characters: ['Just', 'to', 'end', 'up', 'in', 'misery'],
+        pinyin: 'djâst tu énd áp ín mísəri',
+        translation: 'Apenas para acabar em miséria/desgraça.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'End up significa acabar ou terminar em determinada situação.'
+      },
+      {
+        id: 'tc-14',
+        characters: ['Was', 'about', 'to', 'go', 'home'],
+        pinyin: 'uóz abáut tu góu hóum',
+        translation: 'Estava prestes a ir para casa.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Be about to significa estar prestes a fazer algo.'
+      },
+      {
+        id: 'tc-15',
+        characters: ['When', 'there', 'she', 'was', 'standing', 'in', 'front', 'of', 'me'],
+        pinyin: 'uén déar chí uóz sténding ín frónt óv mí',
+        translation: 'Quando ela estava de pé bem na minha frente.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Standing in front of me (de pé na minha frente).'
+      },
+      {
+        id: 'tc-16',
+        characters: ['And', 'said', 'Hi', 'I', 'got', 'a', 'little', 'place', 'nearby', 'wanna', 'go'],
+        pinyin: 'énd séd hái ái gót e lítel pléis níarbái uóna góu',
+        translation: 'E disse: "Oi, tenho um lugarzinho aqui perto, quer ir?"',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Wanna go é a contração de want to go.'
+      },
+      {
+        id: 'tc-17',
+        characters: ['I', 'should\'ve', 'said', 'No', 'someone\'s', 'waiting', 'for', 'me'],
+        pinyin: 'ái chúd-ev séd nóu sâm-uóns uéiting fór mí',
+        translation: 'Eu deveria ter dito: "Não, tem alguém esperando por mim."',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Should\'ve é a contração de should have (deveria ter).'
+      },
+      {
+        id: 'tc-18',
+        characters: ['But', 'I', 'called', 'my', 'girl', 'up', 'and', 'said'],
+        pinyin: 'bât ái cóld mái gârl áp énd séd',
+        translation: 'Mas eu liguei para a minha garota e disse:',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Call up é o phrasal verb para fazer uma ligação.'
+      },
+      {
+        id: 'tc-19',
+        characters: ['Listen', 'baby', 'I\'m', 'sorry', 'just', 'want', 'to', 'tell', 'you', 'don\'t', 'worry'],
+        pinyin: 'lísen béibi áim sóri djâst uónt tu tél iú dóunt uóri',
+        translation: 'Escute amor, me desculpe, só quero te dizer, não se preocupe.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Don\'t worry (não se preocupe).'
+      },
+      {
+        id: 'tc-20',
+        characters: ['I', 'will', 'be', 'late', 'don\'t', 'stay', 'up', 'and', 'wait', 'for', 'me'],
+        pinyin: 'ái uíl bí léit dóunt stéi áp énd uéit fór mí',
+        translation: 'Eu vou me atrasar, não fique acordada me esperando.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Will be late indica um atraso futuro.'
+      },
+      {
+        id: 'tc-21',
+        characters: ['Say', 'again', 'You\'re', 'dropping', 'out', 'my', 'battery', 'is', 'low'],
+        pinyin: 'séi aghén iúr dróping áut mái bétəri íz lóu',
+        translation: 'Fale de novo? Está cortando, minha bateria está fraca.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Battery is low (bateria fraca).'
+      },
+      {
+        id: 'tc-22',
+        characters: ['Just', 'so', 'you', 'know', 'we\'re', 'going', 'to', 'a', 'place', 'nearby', 'gotta', 'go'],
+        pinyin: 'djâst sóu iú nóu uíar góuing tu e pléis níarbái góda góu',
+        translation: 'Só para você saber, nós estamos indo para um lugar por perto, tenho que ir.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Just so you know (só para você saber).'
+      },
+      {
+        id: 'tc-23',
+        characters: ['Now', 'two', 'years', 'gone', 'nothing\'s', 'been', 'won'],
+        pinyin: 'náu tú íars gón nâtingz bín uón',
+        translation: 'Agora, dois anos se passaram, nada foi ganho.',
+        category: 'Música',
+        difficulty: 'Difícil',
+        explanation: 'Gone no sentido de passados/transcorridos.'
+      },
+      {
+        id: 'tc-24',
+        characters: ['I', 'can\'t', 'take', 'it', 'back', 'what\'s', 'done', 'is', 'done'],
+        pinyin: 'ái ként téic it béc uóts dân íz dân',
+        translation: 'Não posso voltar atrás, o que está feito está feito.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Take back (voltar atrás/retirar). What\'s done is done é um ditado comum.'
+      },
+      {
+        id: 'tc-25',
+        characters: ['One', 'of', 'my', 'friends', 'found', 'out'],
+        pinyin: 'uón óv mái frénds fáund áut',
+        translation: 'Um dos meus amigos descobriu.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'Found out é o passado de find out (descobrir).'
+      },
+      {
+        id: 'tc-26',
+        characters: ['That', 'she', 'wasn\'t', 'my', 'only', 'one'],
+        pinyin: 'dét chí uóznt mái óunli uón',
+        translation: 'Que ela não era a minha única.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Only one (único/única).'
+      },
+      {
+        id: 'tc-27',
+        characters: ['And', 'it', 'eats', 'me', 'from', 'inside'],
+        pinyin: 'énd it íts mí fróm insáid',
+        translation: 'E isso me consome por dentro.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Eats me from inside é uma metáfora para algo que corrói ou consome a mente.'
+      },
+      {
+        id: 'tc-28',
+        characters: ['That', 'she\'s', 'not', 'by', 'my', 'side'],
+        pinyin: 'dét chíz nót bái mái sáid',
+        translation: 'Que ela não está ao meu lado.',
+        category: 'Música',
+        difficulty: 'Fácil',
+        explanation: 'By my side (ao meu lado).'
+      },
+      {
+        id: 'tc-29',
+        characters: ['Just', 'because', 'I', 'made', 'that', 'call', 'and', 'lied'],
+        pinyin: 'djâst bikóz ái méid dét cól énd láid',
+        translation: 'Apenas porque eu fiz aquela ligação e menti.',
+        category: 'Música',
+        difficulty: 'Médio',
+        explanation: 'Lied é o passado de lie (mentir).'
+      }
+    ]
   }
 ];
