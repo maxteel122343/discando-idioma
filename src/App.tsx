@@ -692,6 +692,9 @@ export default function App() {
   const [activeWordIds, setActiveWordIds] = useState<string[]>([]);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
+  const [isSidebarCollapsedDesktop, setIsSidebarCollapsedDesktop] = useState<boolean>(() => {
+    return localStorage.getItem('hanzi_dial_sidebar_collapsed') === 'true';
+  });
   const [sidebarForceTab, setSidebarForceTab] = useState<'home' | 'categories' | 'review' | 'progress' | 'profile' | 'chat' | 'ranking' | undefined>(undefined);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebratedSentence, setCelebratedSentence] = useState<Sentence | null>(null);
@@ -1755,21 +1758,87 @@ export default function App() {
       </nav>
 
       {/* Main Content Layout */}
-      <main className="flex-1 w-full mx-auto p-2 sm:p-4 pb-20 lg:pb-6 flex flex-col lg:flex-row gap-4 items-stretch overflow-hidden">
-        
-        {/* Left Sidebar on PC / Overlay on Mobile */}
-        <div 
-          className={`
-            lg:block flex-shrink-0 z-40
-            ${isSidebarOpenMobile ? 'fixed inset-0 top-16 bg-black/30 backdrop-blur-sm z-50' : 'hidden lg:block'}
-            lg:relative lg:top-0 lg:bg-transparent lg:backdrop-blur-none
-          `}
-          onClick={() => setIsSidebarOpenMobile(false)}
-        >
-          <div 
-            className="h-full w-full max-w-sm mr-auto lg:max-w-none"
-            onClick={(e) => e.stopPropagation()} // stop close on sidebar content click
+      <main className="flex-1 w-full mx-auto p-2 sm:p-4 pb-20 lg:pb-4 flex flex-row gap-0 items-stretch overflow-hidden">
+
+        {/* ── DESKTOP LEFT SIDEBAR ─────────────────────────────────────────── */}
+        {/* Mobile: overlay panel triggered by hamburger button in navbar     */}
+        {/* Desktop (lg+): sticky vertical panel on left, collapsible         */}
+
+        {/* Mobile overlay backdrop */}
+        {isSidebarOpenMobile && (
+          <div
+            className="fixed inset-0 top-16 bg-black/40 backdrop-blur-sm z-50 lg:hidden"
+            onClick={() => setIsSidebarOpenMobile(false)}
           >
+            <div
+              className="h-full w-full max-w-sm mr-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Sidebar
+                sentences={activeSentences}
+                completedSentenceIds={completedSentenceIds}
+                activeCategory={currentCategory}
+                onSelectCategory={setCurrentCategory}
+                activeDifficulty={selectedDifficulty}
+                onSelectDifficulty={setSelectedDifficulty}
+                onResetProgress={handleResetProgress}
+                userName={userName}
+                onUpdateUserName={setUserName}
+                isReviewMode={isReviewMode}
+                reviewSentenceId={reviewSentenceId}
+                onStartReview={handleStartReview}
+                onExitReview={handleExitReview}
+                onNextReviewSentence={handleNextReviewSentence}
+                reviewXp={reviewXp}
+                ttsCode={currentLanguage.ttsCode}
+                totalXp={totalXp}
+                completedMusicSentenceIndices={completedMusicSentenceIndices}
+                songTrophies={songTrophies}
+                dialErrorsCount={dialErrorsCount}
+                songs={musicSongs}
+                forceTab={sidebarForceTab}
+                isMusicMode={isMusicMode}
+                activeSongId={activeSongId}
+                onSelectSong={(songId) => {
+                  playTick();
+                  setActiveSongId(songId);
+                  setActiveSongPart(0);
+                  localStorage.setItem('hanzi_dial_active_song_part', '0');
+                  setActiveMusicSentenceIndex(0);
+                  handleClearSequence();
+                  setIsSidebarOpenMobile(false);
+                  const selectedSong = musicSongs.find(s => s.id === songId);
+                  if (selectedSong) {
+                    const targetLangId = getLanguageIdFromSong(selectedSong.language);
+                    handleSelectLanguage(targetLangId);
+                  }
+                }}
+                songPartsPerf={songPartsPerf}
+                onSelectSongPart={(songId, partIndex) => {
+                  playTick();
+                  setActiveSongId(songId);
+                  setActiveSongPart(partIndex);
+                  localStorage.setItem('hanzi_dial_active_song_part', String(partIndex));
+                  const startIdx = partIndex * SENTENCES_PER_PART;
+                  setActiveMusicSentenceIndex(startIdx);
+                  handleClearSequence();
+                  setIsSidebarOpenMobile(false);
+                  const selectedSong = musicSongs.find(s => s.id === songId);
+                  if (selectedSong) {
+                    const targetLangId = getLanguageIdFromSong(selectedSong.language);
+                    handleSelectLanguage(targetLangId);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Desktop sidebar: vertical column on left */}
+        <div className={`hidden lg:flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${
+          isSidebarCollapsedDesktop ? 'w-0 opacity-0' : 'w-[300px] xl:w-[340px] opacity-100'
+        }`}>
+          <div className="h-full w-[300px] xl:w-[340px]">
             <Sidebar
               sentences={activeSentences}
               completedSentenceIds={completedSentenceIds}
@@ -1826,8 +1895,29 @@ export default function App() {
             />
           </div>
         </div>
-        {/* Right Side (Left Side renamed): Game Canvas & Quick Level selector */}
-        <div className="flex-1 flex flex-col gap-4">
+
+        {/* Desktop sidebar collapse toggle tab */}
+        <div className="hidden lg:flex items-center self-stretch">
+          <button
+            onClick={() => {
+              const next = !isSidebarCollapsedDesktop;
+              setIsSidebarCollapsedDesktop(next);
+              localStorage.setItem('hanzi_dial_sidebar_collapsed', String(next));
+            }}
+            title={isSidebarCollapsedDesktop ? 'Expandir painel' : 'Recolher painel'}
+            className="h-full w-5 flex items-center justify-center bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-950/30 text-slate-400 hover:text-indigo-500 transition-all group border-x border-slate-200 dark:border-slate-700"
+          >
+            <ChevronRight
+              size={14}
+              className={`transition-transform duration-300 ${
+                isSidebarCollapsedDesktop ? '' : 'rotate-180'
+              } group-hover:scale-110`}
+            />
+          </button>
+        </div>
+
+        {/* Main game canvas area */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0 pl-2 pr-0">
           
 
 

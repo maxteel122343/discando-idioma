@@ -466,7 +466,7 @@ export default function Sidebar({
   ];
 
   return (
-    <div className="w-full lg:w-[400px] bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 flex flex-col h-[650px] lg:h-full overflow-hidden shadow-2xl relative">
+    <div className="w-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full overflow-hidden shadow-xl relative">
       
       {/* Sidebar Header */}
       <div className="p-5 border-b border-indigo-50 dark:border-indigo-950 flex items-center justify-between">
