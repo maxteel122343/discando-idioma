@@ -10,6 +10,7 @@ export interface FloatingWord {
   size: number;       // Visual scale factor
   isPlaced: boolean;  // Has it been added to the center?
   zIndex?: number;    // Stacking order
+  isManuallyMoved?: boolean;
 }
 
 export interface GameState {

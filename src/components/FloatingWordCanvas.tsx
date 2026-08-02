@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FloatingWord, Sentence } from '../types';
 import { LanguageConfig } from '../data/languages';
@@ -87,6 +87,36 @@ export default function FloatingWordCanvas({
   const [isVoiceDialActive, setIsVoiceDialActive] = useState(false);
   const [voiceDialFeedback, setVoiceDialFeedback] = useState<string | null>(null);
   const [listeningWordId, setListeningWordId] = useState<string | null>(null);
+
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const isPanningRef = useRef(false);
+  const startPanRef = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const isInteractive = target.closest('button') || target.closest('a') || target.closest('#central-dial-zone') || target.closest('.cursor-grab');
+    if (!isInteractive) {
+      isPanningRef.current = true;
+      startPanRef.current = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
+      containerRef.current?.setPointerCapture(e.pointerId);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPanningRef.current) return;
+    const newX = e.clientX - startPanRef.current.x;
+    const newY = e.clientY - startPanRef.current.y;
+    setPanOffset({ x: newX, y: newY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      try {
+        containerRef.current?.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    }
+  };
 
   const getFontSize = (text: string) => {
     if (text.length <= 1) return "text-sm sm:text-2xl";
@@ -211,8 +241,8 @@ export default function FloatingWordCanvas({
     const updatePhysics = () => {
       setWords((prevWords) =>
         prevWords.map((word, idx) => {
-          // If placed or currently dragged, don't update its position with drifting physics
-          if (word.isPlaced || word.id === draggedWordId) {
+          // If placed, currently dragged or manually moved, don't update its position with drifting physics
+          if (word.isPlaced || word.id === draggedWordId || word.isManuallyMoved) {
             return word;
           }
 
@@ -406,6 +436,7 @@ export default function FloatingWordCanvas({
           y: Math.max(8, Math.min(92, newY)),
           vx: 0,
           vy: 0,
+          isManuallyMoved: false,
         };
       })
     );
@@ -491,11 +522,12 @@ export default function FloatingWordCanvas({
       // Update position so it STAYS EXACTLY WHERE THE USER DROPPED IT!
       if (containerEl && (clientX > 0 || clientY > 0)) {
         const containerRect = containerEl.getBoundingClientRect();
-        const relativeX = clientX - containerRect.left;
-        const relativeY = clientY - containerRect.top;
+        // Subtract panOffset to map back to the translated coordinate system of the panned words pool!
+        const relativeX = clientX - containerRect.left - panOffset.x;
+        const relativeY = clientY - containerRect.top - panOffset.y;
 
-        const newXPercent = Math.max(6, Math.min(94, (relativeX / containerRect.width) * 100));
-        const newYPercent = Math.max(6, Math.min(94, (relativeY / containerRect.height) * 100));
+        const newXPercent = (relativeX / containerRect.width) * 100;
+        const newYPercent = (relativeY / containerRect.height) * 100;
 
         setWords((prevWords) =>
           prevWords.map((w) =>
@@ -506,6 +538,7 @@ export default function FloatingWordCanvas({
                   y: newYPercent,
                   vx: 0,
                   vy: 0,
+                  isManuallyMoved: true, // Bypass physics so it stays stationary
                 }
               : w
           )
@@ -714,14 +747,23 @@ export default function FloatingWordCanvas({
   return (
     <div 
       ref={containerRef}
-      className={`relative flex-1 h-[440px] xs:h-[480px] sm:h-[550px] lg:h-full min-h-[420px] sm:min-h-[500px] w-full rounded-3xl overflow-hidden shadow-inner transition-colors duration-300 ${
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      className={`relative flex-1 h-[440px] xs:h-[480px] sm:h-[550px] lg:h-full min-h-[420px] sm:min-h-[500px] w-full rounded-3xl overflow-hidden shadow-inner transition-colors duration-300 select-none ${
+        isPanningRef.current ? 'cursor-grabbing' : 'cursor-grab'
+      } ${
         isMonochrome
           ? "bg-slate-100 dark:bg-zinc-950 border-2 border-zinc-900 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100"
           : "bg-[#F5F3FF] dark:bg-[#120E25] border border-indigo-150 dark:border-indigo-950"
       }`}
     >
       {/* Decorative Dial Telephone Lines Background */}
-      <div className={`absolute inset-0 opacity-[0.06] dark:opacity-[0.08] pointer-events-none select-none ${isMonochrome ? "grayscale" : ""}`}>
+      <div 
+        style={{ transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0px)` }}
+        className={`absolute inset-0 opacity-[0.06] dark:opacity-[0.08] pointer-events-none select-none ${isMonochrome ? "grayscale" : ""} transition-transform duration-75`}
+      >
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="grid" cx="50%" cy="50%" r="50%">
@@ -929,7 +971,10 @@ export default function FloatingWordCanvas({
       </div>
 
       {/* Floating Words Pool */}
-      <div className="absolute inset-0 z-10">
+      <div 
+        style={{ transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0px)` }}
+        className="absolute inset-0 z-10 pointer-events-none"
+      >
         <AnimatePresence>
           {words.map((word, idx) => {
             if (word.isPlaced) return null; // hide if registered in the center
@@ -959,7 +1004,7 @@ export default function FloatingWordCanvas({
                   touchAction: 'none',
                   zIndex: word.zIndex || 10,
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing"
+                className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing pointer-events-auto"
                 whileHover={{ scale: 1.12, rotate: rotationDegrees + 3 }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ scale: 0.9, rotate: rotationDegrees }}
