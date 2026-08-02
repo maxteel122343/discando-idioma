@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FloatingWord, Sentence } from '../types';
 import { LanguageConfig } from '../data/languages';
 import { playTick, playDialRelease, playSuccess, playError } from '../utils/audio';
-import { Sparkles, Trash2, HelpCircle, AlertCircle, RefreshCw, Globe, Palette, Lightbulb, ChevronDown, Check, LayoutGrid, Volume2, Mic, MicOff, Settings, Lock } from 'lucide-react';
-
+import { Sparkles, Trash2, HelpCircle, AlertCircle, RefreshCw, Globe, Palette, Lightbulb, ChevronDown, ChevronLeft, ChevronRight, Check, LayoutGrid, Volume2, Mic, MicOff, Settings, Lock } from 'lucide-react';
 interface FloatingWordCanvasProps {
   sentences: Sentence[];
   completedSentenceIds: string[];
@@ -144,9 +143,10 @@ export default function FloatingWordCanvas({
       const containerWidth = containerRef.current.clientWidth;
       const containerHeight = containerRef.current.clientHeight;
       
-      // Calculate target coordinates for the active dialer in percent
-      const nodeX = 50 + activeMusicSentenceIndex * 150;
-      const nodeY = 50 + (activeMusicSentenceIndex % 2 === 0 ? 15 : -15);
+      const totalSentences = sentences.length || 1;
+      const activeNodeIdx = Math.min(canvasDialersCount - 1, Math.floor((activeMusicSentenceIndex / totalSentences) * canvasDialersCount));
+      const nodeX = 50 + activeNodeIdx * 150;
+      const nodeY = 50 + (activeNodeIdx % 2 === 0 ? 15 : -15);
       
       // Convert percent offset to pixels
       const targetPanX = -((nodeX - 50) / 100) * containerWidth;
@@ -157,7 +157,7 @@ export default function FloatingWordCanvas({
       // Reset pan to center
       setPanOffset({ x: 0, y: 0 });
     }
-  }, [activeMusicSentenceIndex, isMultiDialerMode, isMusicMode]);
+  }, [activeMusicSentenceIndex, isMultiDialerMode, isMusicMode, canvasDialersCount, sentences]);
 
   const getFontSize = (text: string) => {
     if (text.length <= 1) return "text-sm sm:text-2xl";
@@ -228,22 +228,31 @@ export default function FloatingWordCanvas({
 
     // Generate FloatingWord objects with initial positions and slow, random drift velocities
     const newWords: FloatingWord[] = wordPool.map((text, idx) => {
-      // Avoid spawning directly in the center (50, 50). Push to perimeter.
-      let x = 10 + Math.random() * 80;
-      let y = 10 + Math.random() * 80;
+      let centerX = 50;
+      let centerY = 50;
+      if (isMultiDialerMode && isMusicMode) {
+        const totalSentences = sentences.length || 1;
+        const activeNodeIdx = Math.min(canvasDialersCount - 1, Math.floor((activeMusicSentenceIndex / totalSentences) * canvasDialersCount));
+        centerX = 50 + activeNodeIdx * 150;
+        centerY = 50 + (activeNodeIdx % 2 === 0 ? 15 : -15);
+      }
+
+      // Avoid spawning directly in the center of active dialer. Push to perimeter.
+      let x = centerX - 40 + Math.random() * 80;
+      let y = centerY - 40 + Math.random() * 80;
       
-      const dx = x - 50;
-      const dy = y - 50;
+      const dx = x - centerX;
+      const dy = y - centerY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const minCenterDist = 36;
       const maxCenterDist = 46;
 
       if (dist < minCenterDist || dist > maxCenterDist || cardMovementType === 'orbit') {
         const angle = Math.atan2(dy, dx) || (idx * 0.5);
-        // Distribute nicely in tracks outside the central dial ring (up to 95% radius)
+        // Distribute nicely in tracks outside the central dial ring
         const desiredRadius = minCenterDist + 2 + ((idx % 5) * 12);
-        x = 50 + Math.cos(angle) * desiredRadius;
-        y = 50 + Math.sin(angle) * desiredRadius;
+        x = centerX + Math.cos(angle) * desiredRadius;
+        y = centerY + Math.sin(angle) * desiredRadius;
       }
 
       // Slow drift velocity
@@ -280,53 +289,50 @@ export default function FloatingWordCanvas({
   // Physics loop: gentle floating and bouncing off boundaries and central zone
   useEffect(() => {
     let animationFrameId: number;
-
     const updatePhysics = () => {
+      const totalSentences = sentences.length || 1;
+      const activeNodeIdx = isMultiDialerMode && isMusicMode
+        ? Math.min(canvasDialersCount - 1, Math.floor((activeMusicSentenceIndex / totalSentences) * canvasDialersCount))
+        : 0;
+      const centerX = 50 + (isMultiDialerMode && isMusicMode ? activeNodeIdx * 150 : 0);
+      const centerY = 50 + (isMultiDialerMode && isMusicMode ? (activeNodeIdx % 2 === 0 ? 15 : -15) : 0);
+
       setWords((prevWords) =>
         prevWords.map((word, idx) => {
-          // If placed, currently dragged or manually moved, don't update its position with drifting physics
           if (word.isPlaced || word.id === draggedWordId || word.isManuallyMoved) {
             return word;
           }
-
-          // If paused, keep positions
           if (cardSpeed === 0) {
             return word;
           }
 
-          const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
           let nextX = word.x;
           let nextY = word.y;
           let nextVx = word.vx;
           let nextVy = word.vy;
 
           if (cardMovementType === 'orbit') {
-            // Orbital tracking around the center (50, 50)
-            const dx = word.x - 50;
-            const dy = word.y - 50;
+            const dx = word.x - centerX;
+            const dy = word.y - centerY;
             let radius = Math.sqrt(dx * dx + dy * dy);
             
-            // Ensure cards do not enter the central dialing zone, but let them orbit at any outer radius!
             if (radius < 36) radius = 36;
 
             const angle = Math.atan2(dy, dx);
-            // Alternate clockwise and counter-clockwise direction based on index
             const direction = (idx % 2 === 0) ? 1 : -1;
             const angularVelocity = 0.004 * cardSpeed * direction;
             const nextAngle = angle + angularVelocity;
 
-            nextX = 50 + Math.cos(nextAngle) * radius;
-            nextY = 50 + Math.sin(nextAngle) * radius;
+            nextX = centerX + Math.cos(nextAngle) * radius;
+            nextY = centerY + Math.sin(nextAngle) * radius;
           } else {
-            // Gentle random drift
             nextX = word.x + word.vx * cardSpeed;
             nextY = word.y + word.vy * cardSpeed;
 
-            // Bounce off wider container boundaries to accommodate panning workspace
-            const minX = -60;
-            const maxX = 160;
-            const minY = -60;
-            const maxY = 160;
+            const minX = centerX - 110;
+            const maxX = centerX + 110;
+            const minY = centerY - 110;
+            const maxY = centerY + 110;
 
             if (nextX < minX || nextX > maxX) {
               nextVx = -word.vx;
@@ -337,20 +343,17 @@ export default function FloatingWordCanvas({
               nextY = Math.max(minY, Math.min(maxY, nextY));
             }
 
-            // Bounce off central dialing ring (strict clearance at radius 36)
-            const dx = nextX - 50;
-            const dy = nextY - 50;
+            const dx = nextX - centerX;
+            const dy = nextY - centerY;
             const dist = Math.sqrt(dx * dx + dy * dy);
             const minCenterDist = 36;
 
             if (dist < minCenterDist) {
-              // Calculate bounce vector away from center
               const angle = Math.atan2(dy, dx);
               nextVx = Math.cos(angle) * Math.abs(word.vx);
               nextVy = Math.sin(angle) * Math.abs(word.vy);
-              // Push just outside the radius
-              nextX = 50 + Math.cos(angle) * (minCenterDist + 0.5);
-              nextY = 50 + Math.sin(angle) * (minCenterDist + 0.5);
+              nextX = centerX + Math.cos(angle) * (minCenterDist + 0.5);
+              nextY = centerY + Math.sin(angle) * (minCenterDist + 0.5);
             }
           }
 
@@ -363,14 +366,12 @@ export default function FloatingWordCanvas({
           };
         })
       );
-
       animationFrameId = requestAnimationFrame(updatePhysics);
     };
 
     animationFrameId = requestAnimationFrame(updatePhysics);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [draggedWordId, cardSpeed, cardMovementType]);
-
+  }, [draggedWordId, cardSpeed, cardMovementType, isMultiDialerMode, isMusicMode, activeMusicSentenceIndex, canvasDialersCount, sentences]);
   // Dynamic vibrant border colors matching the mockup
   const getVibrantColors = (index: number) => {
     const palette = [
@@ -1051,11 +1052,36 @@ export default function FloatingWordCanvas({
           <div className="flex items-center gap-1 md:gap-2 pointer-events-auto">
             <button
               onClick={handleOrganizeWords}
-              title="Espalhar e Organizar Palavras Sem Sobrepor"
               className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-indigo-600 dark:text-indigo-400 active:scale-95 cursor-pointer"
             >
               <LayoutGrid className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
             </button>
+            {isMusicMode && onSelectMusicSentenceIndex && (
+              <>
+                <button
+                  onClick={() => {
+                    playTick();
+                    onSelectMusicSentenceIndex(Math.max(0, activeMusicSentenceIndex - 1));
+                  }}
+                  disabled={activeMusicSentenceIndex === 0}
+                  title="Frase Anterior"
+                  className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-slate-500 disabled:opacity-40 active:scale-95 cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                </button>
+                <button
+                  onClick={() => {
+                    playTick();
+                    onSelectMusicSentenceIndex(Math.min(sentences.length - 1, activeMusicSentenceIndex + 1));
+                  }}
+                  disabled={activeMusicSentenceIndex === sentences.length - 1}
+                  title="Próxima Frase"
+                  className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-slate-500 disabled:opacity-40 active:scale-95 cursor-pointer"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                </button>
+              </>
+            )}
             {isReviewMode && (
               <button
                 onClick={onNextReviewSentence}
