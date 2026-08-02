@@ -1111,6 +1111,7 @@ export default function App() {
     let currentXp = totalXp + 15; // +15 XP por frase completada
 
     if (isMusicMode) {
+      setMusicTimer(30);
       const activeTrack = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
       let updatedMusicIndices = completedMusicSentenceIndices;
       if (!completedMusicSentenceIndices.includes(activeMusicSentenceIndex)) {

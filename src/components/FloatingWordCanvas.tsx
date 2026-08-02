@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FloatingWord, Sentence } from '../types';
 import { LanguageConfig } from '../data/languages';
 import { playTick, playDialRelease, playSuccess, playError } from '../utils/audio';
-import { Sparkles, Trash2, HelpCircle, AlertCircle, RefreshCw, Globe, Palette, Lightbulb, ChevronDown, Check, LayoutGrid, Volume2, Mic, MicOff } from 'lucide-react';
+import { Sparkles, Trash2, HelpCircle, AlertCircle, RefreshCw, Globe, Palette, Lightbulb, ChevronDown, Check, LayoutGrid, Volume2, Mic, MicOff, Settings } from 'lucide-react';
 
 interface FloatingWordCanvasProps {
   sentences: Sentence[];
@@ -87,6 +87,7 @@ export default function FloatingWordCanvas({
   const [isVoiceDialActive, setIsVoiceDialActive] = useState(false);
   const [voiceDialFeedback, setVoiceDialFeedback] = useState<string | null>(null);
   const [listeningWordId, setListeningWordId] = useState<string | null>(null);
+  const [showConfig, setShowConfig] = useState(false);
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const isPanningRef = useRef(false);
@@ -810,164 +811,184 @@ export default function FloatingWordCanvas({
         {/* Left Side: Game Mode Label & Language Selector */}
         <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto relative">
           
-          {/* Category / Game Mode Pill */}
-          {isReviewMode ? (
-            <div className="flex items-center gap-1 bg-violet-600 text-white dark:bg-violet-900 backdrop-blur-md px-2 py-1 rounded-full text-[9px] md:text-[11px] font-mono tracking-wider font-bold border border-violet-500 shadow-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse" />
-              MODO REVISÃO
-            </div>
-          ) : (
-            <div className={`flex items-center gap-1 backdrop-blur-md px-2 py-1 rounded-full text-[9px] md:text-[11px] font-mono tracking-wider font-bold border shadow-sm ${
-              isMonochrome
-                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-900 dark:border-zinc-700"
-                : "bg-white/80 dark:bg-slate-900/80 border-indigo-100 dark:border-indigo-900/50 text-indigo-650 dark:text-indigo-450"
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isMonochrome ? "bg-zinc-900 dark:bg-zinc-100" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`} />
-              CAT: {currentCategory.toUpperCase()}
-            </div>
-          )}
-
-          {/* Quick Language Selector Button in Arena Header */}
-          {currentLanguage && onSelectLanguage && (
-            <div className="relative pointer-events-auto">
-              <button
-                onClick={() => { playTick(); setIsLangMenuOpen(!isLangMenuOpen); }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] md:text-[11px] font-black transition-all shadow-md active:scale-95 cursor-pointer border ${
-                  isMonochrome
-                    ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
-                    : "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-500 shadow-indigo-500/20"
-                }`}
-                title="Mudar Idioma Diretamente na Tela do Discador"
-              >
-                <span className="text-xs">{currentLanguage.flag}</span>
-                <span className="font-extrabold tracking-wide">{currentLanguage.name}</span>
-                <ChevronDown size={10} className={`transition-transform duration-200 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Language Selection Popover */}
-              <AnimatePresence>
-                {isLangMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-10 left-0 mt-1 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 space-y-0.5 max-h-64 overflow-y-auto custom-scrollbar"
-                  >
-                    <p className="text-[8px] font-mono font-black text-slate-400 uppercase tracking-wider px-2 py-0.5">
-                      Idiomas Disponíveis
-                    </p>
-                    {allLanguages.map((lang) => {
-                      const isSelected = lang.id === currentLanguage.id;
-                      return (
-                        <button
-                          key={lang.id}
-                          onClick={() => {
-                            playTick();
-                            onSelectLanguage(lang.id);
-                            setIsLangMenuOpen(false);
-                          }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-between cursor-pointer ${
-                            isSelected
-                              ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-extrabold"
-                              : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs">{lang.flag}</span>
-                            <span>{lang.name}</span>
-                          </div>
-                          {isSelected && <Check size={12} className="text-indigo-600 dark:text-indigo-400" />}
-                        </button>
-                      );
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
-
-          {/* Theme Palette Toggle Button (Monochrome P&B vs Vibrant Colors) - Hidden on mobile */}
-          {onToggleMonochrome && (
-            <button
-              onClick={() => { playTick(); onToggleMonochrome(); }}
-              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
-                isMonochrome
-                  ? "bg-black text-white dark:bg-white dark:text-black border-zinc-800 dark:border-zinc-200 ring-2 ring-zinc-400/40"
-                  : "bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 border-indigo-100 dark:border-indigo-900/50 hover:bg-slate-100"
-              }`}
-              title="Alternar Tema: Monocromático P&B ou Cores Vibrantes"
-            >
-              <Palette size={13} />
-              <span>{isMonochrome ? "P&B Minimalista" : "Cores"}</span>
-            </button>
-          )}
-
-          {/* Hint Toggle Button - Hidden on mobile */}
-          {onToggleHint && (
-            <button
-              onClick={() => { playTick(); onToggleHint(); }}
-              className={`hidden md:flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
-                isHintEnabled
-                  ? "bg-amber-400 text-slate-950 border-amber-500 shadow-amber-500/20 font-black"
-                  : "bg-white/80 dark:bg-slate-900/80 text-slate-400 border-slate-200 dark:border-slate-800 opacity-80"
-              }`}
-              title="Ativar/Desativar Dicas que mostram a próxima palavra"
-            >
-              <Lightbulb size={13} className={isHintEnabled ? "fill-slate-950" : ""} />
-              <span>Dicas {isHintEnabled ? "ON" : "OFF"}</span>
-            </button>
-          )}
-
-          {/* Always Active Voice Dialer Toggle */}
+          {/* Settings toggle button to show/hide controls inside the canvas */}
           <button
-            onClick={() => { playTick(); setIsVoiceDialActive(!isVoiceDialActive); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
-              isVoiceDialActive
-                ? "bg-red-650 text-white border-red-700 shadow-md ring-2 ring-red-400/40 animate-pulse font-black"
-                : "bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 border-indigo-100 dark:border-indigo-900/50 hover:bg-slate-100"
+            onClick={() => { playTick(); setShowConfig(prev => !prev); }}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] md:text-[11px] font-black transition-all shadow-md active:scale-95 cursor-pointer border ${
+              showConfig
+                ? "bg-indigo-650 text-white border-indigo-700 dark:bg-indigo-700 dark:border-indigo-800"
+                : "bg-white/90 dark:bg-slate-900/90 border-indigo-150 dark:border-indigo-900/50 text-indigo-650 dark:text-indigo-400"
             }`}
-            title="Discar por Voz: Fale a palavra correta para discá-la automaticamente"
+            title="Mostrar/Ocultar Ajustes do Discador"
           >
-            {isVoiceDialActive ? <Mic size={13} className="text-white animate-bounce" /> : <MicOff size={13} />}
-            <span>Voz {isVoiceDialActive ? "Ativa" : "Desativa"}</span>
+            <Settings size={11} className={showConfig ? "animate-spin-slow" : ""} />
+            <span>{showConfig ? "Fechar" : "Ajustes"}</span>
           </button>
+
+          {showConfig && (
+            <>
+              {/* Category / Game Mode Pill */}
+              {isReviewMode ? (
+                <div className="flex items-center gap-1 bg-violet-600 text-white dark:bg-violet-900 backdrop-blur-md px-2 py-1 rounded-full text-[9px] md:text-[11px] font-mono tracking-wider font-bold border border-violet-500 shadow-md">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse" />
+                  MODO REVISÃO
+                </div>
+              ) : (
+                <div className={`flex items-center gap-1 backdrop-blur-md px-2 py-1 rounded-full text-[9px] md:text-[11px] font-mono tracking-wider font-bold border shadow-sm ${
+                  isMonochrome
+                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-900 dark:border-zinc-700"
+                    : "bg-white/80 dark:bg-slate-900/80 border-indigo-100 dark:border-indigo-900/50 text-indigo-650 dark:text-indigo-450"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isMonochrome ? "bg-zinc-900 dark:bg-zinc-100" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`} />
+                  CAT: {currentCategory.toUpperCase()}
+                </div>
+              )}
+
+              {/* Quick Language Selector Button in Arena Header */}
+              {currentLanguage && onSelectLanguage && (
+                <div className="relative pointer-events-auto">
+                  <button
+                    onClick={() => { playTick(); setIsLangMenuOpen(!isLangMenuOpen); }}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] md:text-[11px] font-black transition-all shadow-md active:scale-95 cursor-pointer border ${
+                      isMonochrome
+                        ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
+                        : "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-500 shadow-indigo-500/20"
+                    }`}
+                    title="Mudar Idioma Diretamente na Tela do Discador"
+                  >
+                    <span className="text-xs">{currentLanguage.flag}</span>
+                    <span className="font-extrabold tracking-wide">{currentLanguage.name}</span>
+                    <ChevronDown size={10} className={`transition-transform duration-200 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Language Selection Popover */}
+                  <AnimatePresence>
+                    {isLangMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute top-10 left-0 mt-1 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 space-y-0.5 max-h-64 overflow-y-auto custom-scrollbar"
+                      >
+                        <p className="text-[8px] font-mono font-black text-slate-400 uppercase tracking-wider px-2 py-0.5">
+                          Idiomas Disponíveis
+                        </p>
+                        {allLanguages.map((lang) => {
+                          const isSelected = lang.id === currentLanguage.id;
+                          return (
+                            <button
+                              key={lang.id}
+                              onClick={() => {
+                                playTick();
+                                onSelectLanguage(lang.id);
+                                setIsLangMenuOpen(false);
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-between cursor-pointer ${
+                                isSelected
+                                  ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-extrabold"
+                                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs">{lang.flag}</span>
+                                <span>{lang.name}</span>
+                              </div>
+                              {isSelected && <Check size={12} className="text-indigo-600 dark:text-indigo-400" />}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Theme Palette Toggle Button (Monochrome P&B vs Vibrant Colors) - Hidden on mobile */}
+              {onToggleMonochrome && (
+                <button
+                  onClick={() => { playTick(); onToggleMonochrome(); }}
+                  className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
+                    isMonochrome
+                      ? "bg-black text-white dark:bg-white dark:text-black border-zinc-800 dark:border-zinc-200 ring-2 ring-zinc-400/40"
+                      : "bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 border-indigo-100 dark:border-indigo-900/50 hover:bg-slate-100"
+                  }`}
+                  title="Alternar Tema: Monocromático P&B ou Cores Vibrantes"
+                >
+                  <Palette size={13} />
+                  <span>{isMonochrome ? "P&B Minimalista" : "Cores"}</span>
+                </button>
+              )}
+
+              {/* Hint Toggle Button - Hidden on mobile */}
+              {onToggleHint && (
+                <button
+                  onClick={() => { playTick(); onToggleHint(); }}
+                  className={`hidden md:flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
+                    isHintEnabled
+                      ? "bg-amber-400 text-slate-950 border-amber-500 shadow-amber-500/20 font-black"
+                      : "bg-white/80 dark:bg-slate-900/80 text-slate-400 border-slate-200 dark:border-slate-800 opacity-80"
+                  }`}
+                  title="Ativar/Desativar Dicas que mostram a próxima palavra"
+                >
+                  <Lightbulb size={13} className={isHintEnabled ? "fill-slate-950" : ""} />
+                  <span>Dicas {isHintEnabled ? "ON" : "OFF"}</span>
+                </button>
+              )}
+
+              {/* Always Active Voice Dialer Toggle */}
+              <button
+                onClick={() => { playTick(); setIsVoiceDialActive(!isVoiceDialActive); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
+                  isVoiceDialActive
+                    ? "bg-red-650 text-white border-red-700 shadow-md ring-2 ring-red-400/40 animate-pulse font-black"
+                    : "bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 border-indigo-100 dark:border-indigo-900/50 hover:bg-slate-100"
+                }`}
+                title="Discar por Voz: Fale a palavra correta para discá-la automaticamente"
+              >
+                {isVoiceDialActive ? <Mic size={13} className="text-white animate-bounce" /> : <MicOff size={13} />}
+                <span>Voz {isVoiceDialActive ? "Ativa" : "Desativa"}</span>
+              </button>
+            </>
+          )}
 
         </div>
 
         {/* Right Side Action Buttons */}
-        <div className="flex items-center gap-1 md:gap-2 pointer-events-auto">
-          <button
-            onClick={handleOrganizeWords}
-            title="Espalhar e Organizar Palavras Sem Sobrepor"
-            className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-indigo-600 dark:text-indigo-400 active:scale-95 cursor-pointer"
-          >
-            <LayoutGrid className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
-          </button>
-          {isReviewMode && (
+        {showConfig && (
+          <div className="flex items-center gap-1 md:gap-2 pointer-events-auto">
             <button
-              onClick={onNextReviewSentence}
-              title="Pular / Próxima Frase"
-              className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 shadow-md border border-violet-100 dark:border-violet-900 transition-all text-violet-600 dark:text-violet-400 active:scale-95 cursor-pointer"
+              onClick={handleOrganizeWords}
+              title="Espalhar e Organizar Palavras Sem Sobrepor"
+              className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-indigo-600 dark:text-indigo-400 active:scale-95 cursor-pointer"
             >
-              <RefreshCw className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+              <LayoutGrid className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
             </button>
-          )}
-          <button
-            onClick={triggerHint}
-            title="Destacar Próxima Palavra"
-            className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-amber-50 dark:bg-slate-900 dark:hover:bg-amber-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-amber-500 active:scale-95 cursor-pointer"
-          >
-            <HelpCircle className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
-          </button>
-          <button
-            onClick={onClearSequence}
-            disabled={activeSequence.length === 0}
-            title="Limpar Disco Central"
-            className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-red-50 hover:text-red-500 dark:bg-slate-900 dark:hover:bg-red-950/50 dark:hover:text-red-400 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-slate-500 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-500 active:scale-95 cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
-          </button>
-        </div>
+            {isReviewMode && (
+              <button
+                onClick={onNextReviewSentence}
+                title="Pular / Próxima Frase"
+                className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-violet-50 dark:bg-slate-900 dark:hover:bg-violet-950/20 shadow-md border border-violet-100 dark:border-violet-900 transition-all text-violet-600 dark:text-violet-400 active:scale-95 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+              </button>
+            )}
+            <button
+              onClick={triggerHint}
+              title="Destacar Próxima Palavra"
+              className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-amber-50 dark:bg-slate-900 dark:hover:bg-amber-950/20 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-amber-500 active:scale-95 cursor-pointer"
+            >
+              <HelpCircle className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+            </button>
+            <button
+              onClick={onClearSequence}
+              disabled={activeSequence.length === 0}
+              title="Limpar Disco Central"
+              className="flex items-center justify-center p-1.5 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-red-50 hover:text-red-500 dark:bg-slate-900 dark:hover:bg-red-950/50 dark:hover:text-red-400 shadow-md border border-indigo-100 dark:border-indigo-900 transition-all text-slate-500 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-500 active:scale-95 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Floating Words Pool */}
