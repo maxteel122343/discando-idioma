@@ -112,10 +112,9 @@ export default function FloatingWordCanvas({
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const startPanRef = useRef({ x: 0, y: 0 });
-
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-    const isInteractive = target.closest('button') || target.closest('a') || target.closest('#central-dial-zone') || target.closest('.cursor-grab');
+    const isInteractive = target.closest('button') || target.closest('a') || target.closest('#central-dial-zone') || target.closest('.word-card');
     if (!isInteractive) {
       setIsPanning(true);
       startPanRef.current = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
@@ -1121,7 +1120,7 @@ export default function FloatingWordCanvas({
                   touchAction: 'none',
                   zIndex: word.zIndex || 10,
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing pointer-events-auto"
+                className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing pointer-events-auto word-card"
                 whileHover={{ scale: 1.12, rotate: rotationDegrees + 3 }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ scale: 0.9, rotate: rotationDegrees }}

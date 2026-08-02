@@ -19,26 +19,18 @@ const GOOGLE_TUTOR_VOICES: Record<string, { name: string; gender: string }> = {
 };
 
 async function _speakGoogleTTS(text: string, langCode: string, rate: number): Promise<boolean> {
-  // Check runtime key first (set via Settings UI), then build-time env var
-  const apiKey: string =
-    (window as any).__GOOGLE_TTS_KEY__ ||
-    localStorage.getItem('hanzi_dial_google_tts_key') ||
-    (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY ||
-    'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0';
-  if (!apiKey) return false;
-  const prefix = langCode.split('-')[0].toLowerCase();
-  const voice = GOOGLE_TUTOR_VOICES[prefix] || { name: `${langCode}-Wavenet-A`, gender: 'FEMALE' };
+  const customKey = (window as any).__GOOGLE_TTS_KEY__ || 
+                    localStorage.getItem('hanzi_dial_google_tts_key') || 
+                    (import.meta as any).env?.VITE_GOOGLE_TTS_API_KEY;
+  const apiKey = customKey !== 'AIzaSyDUmfVw5Cv51m3v0gBIp3mfaBLllQijiB0' ? customKey : undefined;
+
   try {
     const resp = await fetch(
-      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      `/api/speak`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input: { text },
-          voice: { languageCode: langCode, name: voice.name, ssmlGender: voice.gender },
-          audioConfig: { audioEncoding: 'MP3', speakingRate: rate },
-        }),
+        body: JSON.stringify({ text, lang: langCode, apiKey, rate }),
       }
     );
     if (!resp.ok) return false;
@@ -54,11 +46,11 @@ async function _speakGoogleTTS(text: string, langCode: string, rate: number): Pr
     }
     const blob = new Blob([bytes], { type: 'audio/mp3' });
     const audioUrl = URL.createObjectURL(blob);
-
+ 
     const audio = getSharedTtsAudio();
     audio.pause();
     audio.src = audioUrl;
-
+ 
     await new Promise<void>((res) => {
       audio.onended = () => {
         URL.revokeObjectURL(audioUrl);

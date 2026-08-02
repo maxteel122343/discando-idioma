@@ -523,6 +523,56 @@ export default function App() {
     return saved ? parseInt(saved, 10) : 30;
   });
 
+  const musicAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Manage background music audio track playback
+  useEffect(() => {
+    if (!isMusicMode) {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+        musicAudioRef.current = null;
+      }
+      return;
+    }
+
+    const activeTrack = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+    if (activeTrack && activeTrack.audioUrl) {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+      }
+      // Create new audio element
+      const audio = new Audio(activeTrack.audioUrl);
+      audio.loop = true;
+      audio.volume = 0.40; // slightly lower volume so user can hear voice assistant
+      musicAudioRef.current = audio;
+
+      if (isMusicPlaying) {
+        audio.play().catch((e) => console.log('Audio autoplay prevented', e));
+      }
+    } else {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+        musicAudioRef.current = null;
+      }
+    }
+
+    return () => {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+      }
+    };
+  }, [activeSongId, isMusicMode]);
+
+  // Handle play/pause toggle sync
+  useEffect(() => {
+    if (musicAudioRef.current) {
+      if (isMusicPlaying) {
+        musicAudioRef.current.play().catch((e) => console.log('Audio play prevented', e));
+      } else {
+        musicAudioRef.current.pause();
+      }
+    }
+  }, [isMusicPlaying]);
   // Sync initial song language on mount when in music mode
   useEffect(() => {
     if (isMusicMode) {
