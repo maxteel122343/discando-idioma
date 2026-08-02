@@ -1201,23 +1201,35 @@ export default function FloatingWordCanvas({
             const isCurrent = !isMultiDialerMode || idx === activeNodeIdx;
             const isCompleted = isMultiDialerMode && idx < activeNodeIdx;
             const isLocked = isMultiDialerMode && idx > activeNodeIdx;
-
             // Calculate range of sentences represented by this dialer node
             const startIdx = Math.floor((idx / canvasDialersCount) * totalSentences);
-            const endIdx = Math.floor(((idx + 1) / canvasDialersCount) * totalSentences) - 1;
+            const endIdx = Math.max(startIdx, Math.floor(((idx + 1) / canvasDialersCount) * totalSentences) - 1);
 
             // Calculate center of this dialer node in percent
             const posX = 50 + (isMultiDialerMode ? idx * 150 : 0);
             const posY = 50 + (isMultiDialerMode ? (idx % 2 === 0 ? 15 : -15) : 0);
 
+            const isClickable = isMultiDialerMode && isMusicMode && !isCurrent && onSelectMusicSentenceIndex;
+
             return (
               <div
                 key={idx}
+                onClick={() => {
+                  if (isClickable) {
+                    playTick();
+                    onSelectMusicSentenceIndex(startIdx);
+                  }
+                }}
                 style={{
                   left: `${posX}%`,
                   top: `${posY}%`,
+                  cursor: isClickable ? 'pointer' : 'default',
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none select-none"
+                className={`absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center select-none transition-all duration-300 ${
+                  isClickable 
+                    ? 'pointer-events-auto hover:scale-105 active:scale-95 cursor-pointer' 
+                    : 'pointer-events-none'
+                }`}
               >
                 {/* Visual wrapper matching original dial sizes */}
                 <div className="relative w-[280px] h-[280px] xs:w-[320px] xs:h-[320px] sm:w-[420px] sm:h-[420px] flex items-center justify-center pointer-events-none">

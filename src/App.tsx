@@ -1868,7 +1868,7 @@ export default function App() {
               isExpandedCanvas && isMusicMode ? 'ring-2 ring-indigo-500/30 shadow-2xl shadow-indigo-500/10' : ''
             }`}>
               <FloatingWordCanvas
-                sentences={activeSentences}
+                sentences={isMusicMode ? ((musicSongs.find(s => s.id === activeSongId) || musicSongs[0])?.sentences || []) : activeSentences}
                 completedSentenceIds={completedSentenceIds}
                 activeSequence={activeSequence}
                 activeWordIds={activeWordIds}
