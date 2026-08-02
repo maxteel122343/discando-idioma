@@ -38,6 +38,8 @@ interface FloatingWordCanvasProps {
   allLanguages?: LanguageConfig[];
   onSelectLanguage?: (langId: string) => void;
   onTriggerVoiceGuidance?: () => void;
+  musicTimer?: number;
+  isMusicPlaying?: boolean;
 }
 
 export default function FloatingWordCanvas({
@@ -73,6 +75,8 @@ export default function FloatingWordCanvas({
   allLanguages = [],
   onSelectLanguage,
   onTriggerVoiceGuidance,
+  musicTimer,
+  isMusicPlaying = false,
 }: FloatingWordCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [words, setWords] = useState<FloatingWord[]>([]);
@@ -1039,6 +1043,17 @@ export default function FloatingWordCanvas({
 
             {/* Central content container */}
             <div className="z-10 flex flex-col items-center justify-center text-center p-6 w-full h-full">
+              {isMusicMode && musicTimer !== undefined && (
+                <div className={`absolute top-4 xs:top-6 sm:top-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full border text-[10px] sm:text-xs font-mono font-black uppercase shadow-sm select-none transition-all duration-300 ${
+                  isMusicPlaying
+                    ? 'bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20 animate-pulse'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isMusicPlaying ? 'bg-red-500 animate-ping' : 'bg-slate-400 dark:bg-slate-600'}`} />
+                  <span>{musicTimer}s</span>
+                </div>
+              )}
+
               {activeSequence.length === 0 ? (
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center text-indigo-500 animate-pulse shadow-sm">

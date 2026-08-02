@@ -1820,6 +1820,8 @@ export default function App() {
                 allLanguages={LANGUAGES}
                 onSelectLanguage={(id) => handleSelectLanguage(id)}
                 onTriggerVoiceGuidance={() => triggerTutorGuidance()}
+                musicTimer={musicTimer}
+                isMusicPlaying={isMusicPlaying}
               />
 
               {/* WordRainOverlay — INSIDE the canvas so overflow:hidden clips it */}
