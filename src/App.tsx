@@ -53,6 +53,18 @@ import {
   Shrink,
   Grid
 } from 'lucide-react';
+// ── Music Parts/Sessions System ───────────────────────────────────────────────
+// Each song is divided into parts of SENTENCES_PER_PART sentences each.
+// Performance per part is stored in localStorage and shown as colored blocks
+// in the sidebar playlist.
+const SENTENCES_PER_PART = 10;
+type PartPerf = 'none' | 'bad' | 'good' | 'excellent' | 'amazing';
+interface SongPart {
+  partIndex: number;
+  performance: PartPerf;
+  completedAt?: string;
+}
+
 const PRELOADED_BOOKS: Record<string, { name: string; sentences: Sentence[] }> = {
   prince: {
     name: "O Pequeno Príncipe (小王子)",
@@ -505,7 +517,22 @@ export default function App() {
     total: number;
     rank: string;
     xpGained: number;
+    hasNextPart: boolean;
+    partIndex: number;
+    partTotal: number;
   } | null>(null);
+
+  // Active part index (0-based) within the current song session
+  const [activeSongPart, setActiveSongPart] = useState<number>(() => {
+    const saved = localStorage.getItem('hanzi_dial_active_song_part');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  // Performance data per song: Record<songId, SongPart[]>
+  const [songPartsPerf, setSongPartsPerf] = useState<Record<string, SongPart[]>>(() => {
+    const saved = localStorage.getItem('hanzi_dial_song_parts_perf');
+    return saved ? JSON.parse(saved) : {};
+  });
 
   // isExpandedCanvas: expands the dialer canvas section + shows lyrics strip below
   const [isExpandedCanvas, setIsExpandedCanvas] = useState(true);
@@ -612,7 +639,12 @@ export default function App() {
     if (!song) return;
 
     const isLast = activeMusicSentenceIndex >= song.sentences.length - 1;
-    if (isLast) {
+    // Also check if we're at the end of the current part
+    const partStart = activeSongPart * SENTENCES_PER_PART;
+    const partEnd = Math.min(partStart + SENTENCES_PER_PART, song.sentences.length);
+    const isLastOfPart = activeMusicSentenceIndex >= partEnd - 1;
+
+    if (isLast || isLastOfPart) {
       finishSongGame();
     } else {
       setActiveMusicSentenceIndex(prev => prev + 1);
@@ -1133,12 +1165,38 @@ export default function App() {
 
     // Calculate XP gained
     const xpGained = completedCount * 15 + (pct >= 80 ? 100 : 0);
+
+    // ── Parts System: save per-part performance ───────────────────────────────
+    const numParts = Math.max(1, Math.ceil(total / SENTENCES_PER_PART));
+    const partStart = activeSongPart * SENTENCES_PER_PART;
+    const partEnd = Math.min(partStart + SENTENCES_PER_PART, total);
+    const partSentenceCount = partEnd - partStart;
+    const partCompleted = completedMusicSentenceIndices.filter(
+      idx => idx >= partStart && idx < partEnd
+    ).length;
+    const partPct = partSentenceCount > 0 ? (partCompleted / partSentenceCount) * 100 : 0;
+    let partPerf: PartPerf = 'bad';
+    if (partPct >= 95) partPerf = 'amazing';
+    else if (partPct >= 80) partPerf = 'excellent';
+    else if (partPct >= 60) partPerf = 'good';
+    const existingParts: SongPart[] = songPartsPerf[song.id] ?? [];
+    const updatedParts = [
+      ...existingParts.filter(p => p.partIndex !== activeSongPart),
+      { partIndex: activeSongPart, performance: partPerf, completedAt: new Date().toISOString() }
+    ].sort((a, b) => a.partIndex - b.partIndex);
+    const updatedPartsPerf = { ...songPartsPerf, [song.id]: updatedParts };
+    setSongPartsPerf(updatedPartsPerf);
+    localStorage.setItem('hanzi_dial_song_parts_perf', JSON.stringify(updatedPartsPerf));
+    const hasNextPart = activeSongPart + 1 < numParts;
     
     setFinishedSongStats({
       completed: completedCount,
       total,
       rank,
-      xpGained
+      xpGained,
+      hasNextPart,
+      partIndex: activeSongPart,
+      partTotal: numParts,
     });
     
     setIsMusicGameFinished(true);
@@ -1146,12 +1204,34 @@ export default function App() {
 
   const handleRetrySong = () => {
     playTick();
-    setCompletedMusicSentenceIndices([]);
-    localStorage.removeItem(`hanzi_dial_completed_music_indices_${activeSongId}`);
-    setActiveMusicSentenceIndex(0);
+    const song = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+    if (!song) return;
+    const partStart = activeSongPart * SENTENCES_PER_PART;
+    const partEnd = Math.min(partStart + SENTENCES_PER_PART, song.sentences.length);
+    // Remove only indices belonging to this part, keep completed sentences from other parts
+    const keptIndices = completedMusicSentenceIndices.filter(idx => idx < partStart || idx >= partEnd);
+    setCompletedMusicSentenceIndices(keptIndices);
+    localStorage.setItem(`hanzi_dial_completed_music_indices_${activeSongId}`, JSON.stringify(keptIndices));
+    setActiveMusicSentenceIndex(partStart);
     setMusicTimer(sentenceTimeLimit);
     setIsMusicGameFinished(false);
     setFinishedSongStats(null);
+    setIsMusicPlaying(true);
+  };
+
+  const handleContinueNextPart = () => {
+    playTick();
+    const song = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
+    if (!song) return;
+    const nextPart = activeSongPart + 1;
+    const nextStart = nextPart * SENTENCES_PER_PART;
+    setActiveSongPart(nextPart);
+    localStorage.setItem('hanzi_dial_active_song_part', String(nextPart));
+    setActiveMusicSentenceIndex(nextStart);
+    setMusicTimer(sentenceTimeLimit);
+    setIsMusicGameFinished(false);
+    setFinishedSongStats(null);
+    handleClearSequence();
     setIsMusicPlaying(true);
   };
 
@@ -1167,6 +1247,9 @@ export default function App() {
       const saved = localStorage.getItem(`hanzi_dial_completed_music_indices_${nextSong.id}`);
       setCompletedMusicSentenceIndices(saved ? JSON.parse(saved) : []);
       
+      // Start from part 0 of the new song
+      setActiveSongPart(0);
+      localStorage.setItem('hanzi_dial_active_song_part', '0');
       setActiveMusicSentenceIndex(0);
       setMusicTimer(sentenceTimeLimit);
       setIsMusicGameFinished(false);
@@ -1233,7 +1316,11 @@ export default function App() {
 
       setTimeout(() => {
         setShowCelebration(false);
-        if (isLastSentence) {
+        // Check if this is the last sentence of the current PART (not necessarily whole song)
+        const partStart = activeSongPart * SENTENCES_PER_PART;
+        const partEnd = Math.min(partStart + SENTENCES_PER_PART, activeTrack ? activeTrack.sentences.length : 0);
+        const isLastSentenceOfPart = activeMusicSentenceIndex === partEnd - 1;
+        if (isLastSentence || isLastSentenceOfPart) {
           finishSongGame();
         } else {
           const nextIndex = activeMusicSentenceIndex + 1;
@@ -1711,7 +1798,24 @@ export default function App() {
               onSelectSong={(songId) => {
                 playTick();
                 setActiveSongId(songId);
+                setActiveSongPart(0);
+                localStorage.setItem('hanzi_dial_active_song_part', '0');
                 setActiveMusicSentenceIndex(0);
+                handleClearSequence();
+                const selectedSong = musicSongs.find(s => s.id === songId);
+                if (selectedSong) {
+                  const targetLangId = getLanguageIdFromSong(selectedSong.language);
+                  handleSelectLanguage(targetLangId);
+                }
+              }}
+              songPartsPerf={songPartsPerf}
+              onSelectSongPart={(songId, partIndex) => {
+                playTick();
+                setActiveSongId(songId);
+                setActiveSongPart(partIndex);
+                localStorage.setItem('hanzi_dial_active_song_part', String(partIndex));
+                const startIdx = partIndex * SENTENCES_PER_PART;
+                setActiveMusicSentenceIndex(startIdx);
                 handleClearSequence();
                 const selectedSong = musicSongs.find(s => s.id === songId);
                 if (selectedSong) {
@@ -1795,6 +1899,8 @@ export default function App() {
               onSelectSong={(songId) => {
                 playTick();
                 setActiveSongId(songId);
+                setActiveSongPart(0);
+                localStorage.setItem('hanzi_dial_active_song_part', '0');
                 setActiveMusicSentenceIndex(0);
                 handleClearSequence();
                 const selectedSong = musicSongs.find(s => s.id === songId);
@@ -2201,7 +2307,9 @@ export default function App() {
 
             <div className="space-y-1">
               <p className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-widest">
-                Música Concluída!
+                {finishedSongStats.partTotal > 1
+                  ? `Parte ${finishedSongStats.partIndex + 1} de ${finishedSongStats.partTotal} Concluída!`
+                  : 'Música Concluída!'}
               </p>
               <h2 className="text-xl font-black tracking-tight">
                 {finishedSongStats.rank === 'Amazing' ? 'DESEMPENHO SENSACIONAL!' :
@@ -2209,9 +2317,37 @@ export default function App() {
                  finishedSongStats.rank === 'Good' ? 'MUITO BOM!' : 'BOM ESFORÇO!'}
               </h2>
               <p className="text-xs text-indigo-200 font-medium leading-relaxed pt-1">
-                Você completou <strong className="text-white font-extrabold">{finishedSongStats.completed}</strong> de <strong className="text-white font-extrabold">{finishedSongStats.total}</strong> linhas da frase.
+                Você completou <strong className="text-white font-extrabold">{finishedSongStats.completed}</strong> de <strong className="text-white font-extrabold">{finishedSongStats.total}</strong> frases da música.
               </p>
             </div>
+
+            {/* Parts progress blocks */}
+            {finishedSongStats.partTotal > 1 && (
+              <div className="space-y-1.5">
+                <p className="text-[9px] font-mono text-slate-400 uppercase tracking-widest text-left">Progresso da Música</p>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: finishedSongStats.partTotal }).map((_, i) => {
+                    const partData = (songPartsPerf[activeSongId] ?? []).find(p => p.partIndex === i);
+                    const perf = partData?.performance ?? 'none';
+                    const isCurrentPart = i === finishedSongStats.partIndex;
+                    const colorClass =
+                      perf === 'amazing' ? 'bg-yellow-400 shadow-sm shadow-yellow-400/50' :
+                      perf === 'excellent' ? 'bg-emerald-500' :
+                      perf === 'good' ? 'bg-blue-400' :
+                      perf === 'bad' ? 'bg-amber-500' :
+                      'bg-slate-600';
+                    return (
+                      <div key={i} className={`flex-1 h-2.5 rounded-full ${colorClass} ${isCurrentPart ? 'ring-2 ring-white/60' : ''} transition-all`} title={`Parte ${i + 1}: ${perf}`} />
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between text-[8px] text-slate-500 font-mono">
+                  {Array.from({ length: finishedSongStats.partTotal }).map((_, i) => (
+                    <span key={i} className={i === finishedSongStats.partIndex ? 'text-indigo-300 font-bold' : ''}>P{i+1}</span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2 text-xs font-mono font-bold text-slate-100">
               <div className="bg-white/5 border border-white/10 p-2.5 rounded-2xl flex flex-col items-center">
@@ -2243,23 +2379,53 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={handleRetrySong}
-                className="flex-1 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer border border-slate-700"
-              >
-                Repetir 🔁
-              </button>
-              <button
-                onClick={handleNextSong}
-                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-650 to-indigo-550 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer"
-              >
-                Próxima 🎵
-              </button>
-            </div>
+            {/* Action Buttons */}
+            {finishedSongStats.hasNextPart ? (
+              /* Has more parts: show retry current part + continue next part */
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  onClick={handleContinueNextPart}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110 text-white font-black text-sm uppercase tracking-wider shadow-lg active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Parte {finishedSongStats.partIndex + 2} →</span>
+                  <span className="text-xs opacity-80">Continuar Música 🎯</span>
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleRetrySong}
+                    className="flex-1 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer border border-slate-700"
+                  >
+                    Refazer P{finishedSongStats.partIndex + 1} 🔁
+                  </button>
+                  <button
+                    onClick={handleNextSong}
+                    className="flex-1 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer border border-white/10"
+                  >
+                    Outra Música 🎵
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Last part or single-part song */
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={handleRetrySong}
+                  className="flex-1 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer border border-slate-700"
+                >
+                  Repetir 🔁
+                </button>
+                <button
+                  onClick={handleNextSong}
+                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-650 to-indigo-550 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  Próxima 🎵
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
+
 
       {/* Settings Overlay Dialog */}
       {isSettingsOpen && (

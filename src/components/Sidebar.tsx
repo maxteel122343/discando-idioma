@@ -53,6 +53,8 @@ interface SidebarProps {
   isMusicMode?: boolean;
   activeSongId?: string;
   onSelectSong?: (songId: string) => void;
+  songPartsPerf?: Record<string, { partIndex: number; performance: 'none' | 'bad' | 'good' | 'excellent' | 'amazing'; completedAt?: string }[]>;
+  onSelectSongPart?: (songId: string, partIndex: number) => void;
 }
 
 type TabType = 'home' | 'categories' | 'review' | 'progress' | 'profile' | 'chat' | 'ranking';
@@ -83,6 +85,8 @@ export default function Sidebar({
   isMusicMode = false,
   activeSongId,
   onSelectSong,
+  songPartsPerf = {},
+  onSelectSongPart,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -685,48 +689,102 @@ export default function Sidebar({
                       const isCompleted = song.sentences.length > 0 && completedIndices.length === song.sentences.length;
                       const isCurrent = song.id === activeSongId;
 
-                      return (
-                        <button
-                          key={song.id}
-                          onClick={() => {
-                            if (onSelectSong) {
-                              playTick();
-                              onSelectSong(song.id);
-                            }
-                          }}
-                          className={`
-                            p-3 rounded-xl border flex items-center justify-between text-left transition-all active:scale-98
-                            ${
-                              isCurrent
-                                ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-indigo-500 text-white border-transparent shadow-md font-bold'
-                                : 'bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-900 dark:hover:bg-slate-850 dark:text-slate-300 border-slate-200 dark:border-slate-800'
-                            }
-                          `}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0
-                              bg-gradient-to-br ${song.coverGradient || 'from-indigo-400 to-pink-400'}
-                              ${isCurrent ? 'ring-2 ring-white/40' : ''}`}>
-                              {song.coverEmoji}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <span className={`block text-xs font-black truncate max-w-[130px] ${isCurrent ? 'text-white font-extrabold' : 'text-slate-800 dark:text-slate-100 font-extrabold'}`}>{song.title}</span>
-                              <span className={`block text-[9px] font-mono truncate max-w-[130px] ${isCurrent ? 'text-white/80' : 'text-slate-400'}`}>{song.artist}</span>
-                            </div>
-                          </div>
+                      // Parts system
+                      const SENTENCES_PER_PART = 10;
+                      const numParts = Math.max(1, Math.ceil(song.sentences.length / SENTENCES_PER_PART));
+                      const parts = songPartsPerf[song.id] ?? [];
+                      const allPartsCompleted = numParts > 0 && parts.length === numParts && parts.every(p => p.performance !== 'none');
 
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {isCompleted ? (
-                              <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${isCurrent ? 'bg-white text-emerald-600 font-bold' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'}`}>
-                                ✓ Finalizado
-                              </span>
-                            ) : (
-                              <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded-full ${isCurrent ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-950 dark:text-slate-400'}`}>
-                                {completedIndices.length}/{song.sentences.length}
-                              </span>
+                      const getPartColor = (perf: string) => {
+                        if (perf === 'amazing') return 'bg-yellow-400 shadow-sm shadow-yellow-400/30';
+                        if (perf === 'excellent') return 'bg-emerald-500';
+                        if (perf === 'good') return 'bg-blue-400';
+                        if (perf === 'bad') return 'bg-amber-400';
+                        return isCurrent ? 'bg-white/30' : 'bg-slate-300 dark:bg-slate-600';
+                      };
+
+                      return (
+                        <div key={song.id} className={`
+                          p-3 rounded-xl border transition-all
+                          ${isCurrent
+                            ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-indigo-500 text-white border-transparent shadow-md'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                          }
+                        `}>
+                          {/* Top row: song info + status */}
+                          <button
+                            className="w-full flex items-center justify-between text-left gap-2 active:scale-98"
+                            onClick={() => {
+                              if (onSelectSong) {
+                                playTick();
+                                onSelectSong(song.id);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0
+                                bg-gradient-to-br ${song.coverGradient || 'from-indigo-400 to-pink-400'}
+                                ${isCurrent ? 'ring-2 ring-white/40' : ''}`}>
+                                {song.coverEmoji}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className={`block text-xs font-black truncate max-w-[130px] ${isCurrent ? 'text-white font-extrabold' : 'text-slate-800 dark:text-slate-100 font-extrabold'}`}>{song.title}</span>
+                                <span className={`block text-[9px] font-mono truncate max-w-[130px] ${isCurrent ? 'text-white/80' : 'text-slate-400'}`}>{song.artist}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isCompleted || allPartsCompleted ? (
+                                <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${isCurrent ? 'bg-white text-emerald-600 font-bold' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'}`}>
+                                  ✓ Completa
+                                </span>
+                              ) : (
+                                <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded-full ${isCurrent ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-950 dark:text-slate-400'}`}>
+                                  {parts.length}/{numParts} Partes
+                                </span>
+                              )}
+                            </div>
+                          </button>
+
+                          {/* Part progress blocks (always visible) */}
+                          <div className="mt-2 space-y-1">
+                            <div className="flex gap-1">
+                              {Array.from({ length: numParts }).map((_, i) => {
+                                const partData = parts.find(p => p.partIndex === i);
+                                const perf = partData?.performance ?? 'none';
+                                return (
+                                  <button
+                                    key={i}
+                                    title={`Parte ${i + 1}: ${perf === 'none' ? 'Não jogada' : perf === 'bad' ? 'Bad' : perf === 'good' ? 'Good' : perf === 'excellent' ? 'Excellent' : 'Amazing'}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (onSelectSong) {
+                                        playTick();
+                                        onSelectSong(song.id);
+                                      }
+                                      if (onSelectSongPart) {
+                                        onSelectSongPart(song.id, i);
+                                      }
+                                    }}
+                                    className={`flex-1 h-2 rounded-full ${getPartColor(perf)} hover:opacity-80 active:scale-95 transition-all cursor-pointer`}
+                                  />
+                                );
+                              })}
+                            </div>
+                            {numParts > 1 && (
+                              <div className="flex justify-between">
+                                {Array.from({ length: numParts }).map((_, i) => {
+                                  const partData = parts.find(p => p.partIndex === i);
+                                  const perf = partData?.performance ?? 'none';
+                                  return (
+                                    <span key={i} className={`text-[7px] font-mono font-bold ${
+                                      isCurrent ? (perf !== 'none' ? 'text-white' : 'text-white/50') : (perf !== 'none' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-300 dark:text-slate-600')
+                                    }`}>P{i + 1}</span>
+                                  );
+                                })}
+                              </div>
                             )}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
