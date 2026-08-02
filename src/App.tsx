@@ -491,7 +491,10 @@ export default function App() {
   });
 
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
-  const [musicTimer, setMusicTimer] = useState<number>(30);
+  const [musicTimer, setMusicTimer] = useState<number>(() => {
+    const saved = localStorage.getItem('hanzi_dial_sentence_time_limit');
+    return saved ? parseInt(saved, 10) : 30;
+  });
   const [isMusicGameFinished, setIsMusicGameFinished] = useState<boolean>(false);
   const [songTrophies, setSongTrophies] = useState<Record<string, 'gold' | 'silver' | 'bronze'>>(() => {
     const saved = localStorage.getItem('hanzi_dial_song_trophies');
@@ -507,6 +510,18 @@ export default function App() {
   // isExpandedCanvas: expands the dialer canvas section + shows lyrics strip below
   const [isExpandedCanvas, setIsExpandedCanvas] = useState(true);
   const [wordRainTrigger, setWordRainTrigger] = useState(0);
+
+  const [isMultiDialerMode, setIsMultiDialerMode] = useState<boolean>(() => {
+    return localStorage.getItem('hanzi_dial_multi_dialer_mode') === 'true';
+  });
+  const [canvasDialersCount, setCanvasDialersCount] = useState<number>(() => {
+    const saved = localStorage.getItem('hanzi_dial_canvas_dialers_count');
+    return saved ? parseInt(saved, 10) : 3;
+  });
+  const [sentenceTimeLimit, setSentenceTimeLimit] = useState<number>(() => {
+    const saved = localStorage.getItem('hanzi_dial_sentence_time_limit');
+    return saved ? parseInt(saved, 10) : 30;
+  });
 
   // Sync initial song language on mount when in music mode
   useEffect(() => {
@@ -532,14 +547,14 @@ export default function App() {
           setTimeout(() => {
             handleMusicTimerExpire();
           }, 0);
-          return 30;
+          return sentenceTimeLimit;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => { if (autoAdvanceRef.current) clearInterval(autoAdvanceRef.current); };
-  }, [isMusicPlaying, isMusicMode, isMusicGameFinished, activeMusicSentenceIndex, activeSongId, musicSongs]);
+  }, [isMusicPlaying, isMusicMode, isMusicGameFinished, activeMusicSentenceIndex, activeSongId, musicSongs, sentenceTimeLimit]);
 
   // Handle timer expiration
   const handleMusicTimerExpire = () => {
@@ -553,7 +568,7 @@ export default function App() {
       setActiveMusicSentenceIndex(prev => prev + 1);
       handleClearSequence();
       setWordRainTrigger(t => t + 1);
-      setMusicTimer(30);
+      setMusicTimer(sentenceTimeLimit);
     }
   };
 
@@ -566,9 +581,9 @@ export default function App() {
         setWordRainTrigger(t => t + 1);
         prevMusicIdxRef.current = activeMusicSentenceIndex;
       }
-      setMusicTimer(30);
+      setMusicTimer(sentenceTimeLimit);
     }
-  }, [activeMusicSentenceIndex, isMusicMode]);
+  }, [activeMusicSentenceIndex, isMusicMode, sentenceTimeLimit]);
   // ─────────────────────────────────────────────────────────────────────────────
   const [dialErrorsCount, setDialErrorsCount] = useState<number>(() => {
     const saved = localStorage.getItem('hanzi_dial_dial_errors_count');
@@ -861,6 +876,18 @@ export default function App() {
     localStorage.setItem('hanzi_dial_speech_rate', String(speechRate));
   }, [speechRate]);
 
+  useEffect(() => {
+    localStorage.setItem('hanzi_dial_multi_dialer_mode', String(isMultiDialerMode));
+  }, [isMultiDialerMode]);
+
+  useEffect(() => {
+    localStorage.setItem('hanzi_dial_canvas_dialers_count', String(canvasDialersCount));
+  }, [canvasDialersCount]);
+
+  useEffect(() => {
+    localStorage.setItem('hanzi_dial_sentence_time_limit', String(sentenceTimeLimit));
+  }, [sentenceTimeLimit]);
+
   // Sync ebook states
   useEffect(() => {
     localStorage.setItem('hanzi_dial_is_ebook_mode', String(isEbookMode));
@@ -1072,7 +1099,7 @@ export default function App() {
     setCompletedMusicSentenceIndices([]);
     localStorage.removeItem(`hanzi_dial_completed_music_indices_${activeSongId}`);
     setActiveMusicSentenceIndex(0);
-    setMusicTimer(30);
+    setMusicTimer(sentenceTimeLimit);
     setIsMusicGameFinished(false);
     setFinishedSongStats(null);
     setIsMusicPlaying(true);
@@ -1091,7 +1118,7 @@ export default function App() {
       setCompletedMusicSentenceIndices(saved ? JSON.parse(saved) : []);
       
       setActiveMusicSentenceIndex(0);
-      setMusicTimer(30);
+      setMusicTimer(sentenceTimeLimit);
       setIsMusicGameFinished(false);
       setFinishedSongStats(null);
       setIsMusicPlaying(true);
@@ -1111,7 +1138,7 @@ export default function App() {
     let currentXp = totalXp + 15; // +15 XP por frase completada
 
     if (isMusicMode) {
-      setMusicTimer(30);
+      setMusicTimer(sentenceTimeLimit);
       const activeTrack = musicSongs.find(s => s.id === activeSongId) || musicSongs[0];
       let updatedMusicIndices = completedMusicSentenceIndices;
       if (!completedMusicSentenceIndices.includes(activeMusicSentenceIndex)) {
@@ -1823,6 +1850,16 @@ export default function App() {
                 onTriggerVoiceGuidance={() => triggerTutorGuidance()}
                 musicTimer={musicTimer}
                 isMusicPlaying={isMusicPlaying}
+                isMultiDialerMode={isMultiDialerMode}
+                canvasDialersCount={canvasDialersCount}
+                sentenceTimeLimit={sentenceTimeLimit}
+                onToggleMultiDialerMode={() => setIsMultiDialerMode(prev => !prev)}
+                onSetCanvasDialersCount={setCanvasDialersCount}
+                onSetSentenceTimeLimit={setSentenceTimeLimit}
+                activeMusicSentenceIndex={activeMusicSentenceIndex}
+                onSelectMusicSentenceIndex={setActiveMusicSentenceIndex}
+                musicSongs={musicSongs}
+                activeSongId={activeSongId}
               />
 
               {/* WordRainOverlay — INSIDE the canvas so overflow:hidden clips it */}

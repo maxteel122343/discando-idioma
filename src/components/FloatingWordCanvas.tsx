@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FloatingWord, Sentence } from '../types';
 import { LanguageConfig } from '../data/languages';
 import { playTick, playDialRelease, playSuccess, playError } from '../utils/audio';
-import { Sparkles, Trash2, HelpCircle, AlertCircle, RefreshCw, Globe, Palette, Lightbulb, ChevronDown, Check, LayoutGrid, Volume2, Mic, MicOff, Settings } from 'lucide-react';
+import { Sparkles, Trash2, HelpCircle, AlertCircle, RefreshCw, Globe, Palette, Lightbulb, ChevronDown, Check, LayoutGrid, Volume2, Mic, MicOff, Settings, Lock } from 'lucide-react';
 
 interface FloatingWordCanvasProps {
   sentences: Sentence[];
@@ -40,6 +40,16 @@ interface FloatingWordCanvasProps {
   onTriggerVoiceGuidance?: () => void;
   musicTimer?: number;
   isMusicPlaying?: boolean;
+  isMultiDialerMode?: boolean;
+  canvasDialersCount?: number;
+  sentenceTimeLimit?: number;
+  onToggleMultiDialerMode?: () => void;
+  onSetCanvasDialersCount?: (count: number) => void;
+  onSetSentenceTimeLimit?: (limit: number) => void;
+  activeMusicSentenceIndex?: number;
+  onSelectMusicSentenceIndex?: (idx: number) => void;
+  musicSongs?: any[];
+  activeSongId?: string;
 }
 
 export default function FloatingWordCanvas({
@@ -77,6 +87,16 @@ export default function FloatingWordCanvas({
   onTriggerVoiceGuidance,
   musicTimer,
   isMusicPlaying = false,
+  isMultiDialerMode = false,
+  canvasDialersCount = 3,
+  sentenceTimeLimit = 30,
+  onToggleMultiDialerMode,
+  onSetCanvasDialersCount,
+  onSetSentenceTimeLimit,
+  activeMusicSentenceIndex = 0,
+  onSelectMusicSentenceIndex,
+  musicSongs = [],
+  activeSongId,
 }: FloatingWordCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [words, setWords] = useState<FloatingWord[]>([]);
@@ -90,34 +110,55 @@ export default function FloatingWordCanvas({
   const [showConfig, setShowConfig] = useState(false);
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const isPanningRef = useRef(false);
+  const [isPanning, setIsPanning] = useState(false);
   const startPanRef = useRef({ x: 0, y: 0 });
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const isInteractive = target.closest('button') || target.closest('a') || target.closest('#central-dial-zone') || target.closest('.cursor-grab');
     if (!isInteractive) {
-      isPanningRef.current = true;
+      setIsPanning(true);
       startPanRef.current = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
       containerRef.current?.setPointerCapture(e.pointerId);
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPanningRef.current) return;
+    if (!isPanning) return;
     const newX = e.clientX - startPanRef.current.x;
     const newY = e.clientY - startPanRef.current.y;
     setPanOffset({ x: newX, y: newY });
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isPanningRef.current) {
-      isPanningRef.current = false;
+    if (isPanning) {
+      setIsPanning(false);
       try {
         containerRef.current?.releasePointerCapture(e.pointerId);
       } catch (err) {}
     }
   };
+
+  // Auto-pan viewport to focus on the active dialer node
+  useEffect(() => {
+    if (isMultiDialerMode && containerRef.current && isMusicMode) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      
+      // Calculate target coordinates for the active dialer in percent
+      const nodeX = 50 + activeMusicSentenceIndex * 150;
+      const nodeY = 50 + (activeMusicSentenceIndex % 2 === 0 ? 15 : -15);
+      
+      // Convert percent offset to pixels
+      const targetPanX = -((nodeX - 50) / 100) * containerWidth;
+      const targetPanY = -((nodeY - 50) / 100) * containerHeight;
+      
+      setPanOffset({ x: targetPanX, y: targetPanY });
+    } else if (!isMultiDialerMode) {
+      // Reset pan to center
+      setPanOffset({ x: 0, y: 0 });
+    }
+  }, [activeMusicSentenceIndex, isMultiDialerMode, isMusicMode]);
 
   const getFontSize = (text: string) => {
     if (text.length <= 1) return "text-sm sm:text-2xl";
@@ -182,10 +223,12 @@ export default function FloatingWordCanvas({
       distractors = Array.from(new Set(otherWords)).filter(c => !correctWords.includes(c)).slice(0, 8);
     }
 
-    const uniquePool = Array.from(new Set([...correctWords, ...distractors]));
+    // Keep duplicate correct words, but ensure distractors are unique and don't overlap with target words
+    const uniqueDistractors = Array.from(new Set(distractors)).filter(d => !correctWords.includes(d));
+    const wordPool = [...correctWords, ...uniqueDistractors];
 
     // Generate FloatingWord objects with initial positions and slow, random drift velocities
-    const newWords: FloatingWord[] = uniquePool.map((text, idx) => {
+    const newWords: FloatingWord[] = wordPool.map((text, idx) => {
       // Avoid spawning directly in the center (50, 50). Push to perimeter.
       let x = 10 + Math.random() * 80;
       let y = 10 + Math.random() * 80;
@@ -751,7 +794,7 @@ export default function FloatingWordCanvas({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
       className={`relative flex-1 h-[440px] xs:h-[480px] sm:h-[550px] lg:h-full min-h-[420px] sm:min-h-[500px] w-full rounded-3xl overflow-hidden shadow-inner transition-colors duration-300 select-none ${
-        isPanningRef.current ? 'cursor-grabbing' : 'cursor-grab'
+        isPanning ? 'cursor-grabbing' : 'cursor-grab'
       } ${
         isMonochrome
           ? "bg-slate-100 dark:bg-zinc-950 border-2 border-zinc-900 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100"
@@ -932,7 +975,6 @@ export default function FloatingWordCanvas({
                   <span>Dicas {isHintEnabled ? "ON" : "OFF"}</span>
                 </button>
               )}
-
               {/* Always Active Voice Dialer Toggle */}
               <button
                 onClick={() => { playTick(); setIsVoiceDialActive(!isVoiceDialActive); }}
@@ -946,9 +988,63 @@ export default function FloatingWordCanvas({
                 {isVoiceDialActive ? <Mic size={13} className="text-white animate-bounce" /> : <MicOff size={13} />}
                 <span>Voz {isVoiceDialActive ? "Ativa" : "Desativa"}</span>
               </button>
+
+              {/* Multi-Dialer Toggle */}
+              {isMusicMode && onToggleMultiDialerMode && (
+                <button
+                  onClick={() => { playTick(); onToggleMultiDialerMode(); }}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all shadow-sm active:scale-95 border cursor-pointer ${
+                    isMultiDialerMode
+                      ? "bg-violet-650 text-white border-violet-750 shadow-md ring-2 ring-violet-400/40 font-black"
+                      : "bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 border-indigo-100 dark:border-indigo-900/50 hover:bg-slate-100"
+                  }`}
+                  title="Alternar entre modo de discador único ou mapa de múltiplos discadores conectados"
+                >
+                  <span>🗺️ {isMultiDialerMode ? "Multi-Disc" : "Disc Único"}</span>
+                </button>
+              )}
+
+              {/* Number of Dialers Selector */}
+              {isMusicMode && isMultiDialerMode && onSetCanvasDialersCount && (
+                <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 border border-indigo-100 dark:border-indigo-900/50 rounded-full px-2 py-1 shadow-sm text-[10px]">
+                  <span className="font-extrabold text-slate-500 dark:text-slate-400 uppercase mr-1">Discadores:</span>
+                  {[2, 3, 4, 5].map((cnt) => (
+                    <button
+                      key={cnt}
+                      onClick={() => { playTick(); onSetCanvasDialersCount(cnt); }}
+                      className={`px-1.5 py-0.5 rounded-full font-black cursor-pointer transition-all ${
+                        canvasDialersCount === cnt
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-650 dark:text-slate-355 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      {cnt}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Sentence Time Limit Selector */}
+              {isMusicMode && onSetSentenceTimeLimit && (
+                <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 border border-indigo-100 dark:border-indigo-900/50 rounded-full px-2 py-1 shadow-sm text-[10px]">
+                  <span className="font-extrabold text-slate-500 dark:text-slate-400 uppercase mr-1">Tempo:</span>
+                  {[15, 30, 45, 60].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => { playTick(); onSetSentenceTimeLimit(t); }}
+                      className={`px-1.5 py-0.5 rounded-full font-black cursor-pointer transition-all ${
+                        sentenceTimeLimit === t
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-650 dark:text-slate-355 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      {t}s
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           )}
-
         </div>
 
         {/* Right Side Action Buttons */}
@@ -992,7 +1088,9 @@ export default function FloatingWordCanvas({
       {/* Floating Words Pool */}
       <div 
         style={{ transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0px)` }}
-        className="absolute inset-0 z-10 pointer-events-none"
+        className={`absolute inset-0 z-10 pointer-events-none ${
+          isPanning ? '' : 'transition-transform duration-700 ease-out'
+        }`}
       >
         <AnimatePresence>
           {words.map((word, idx) => {
@@ -1065,145 +1163,234 @@ export default function FloatingWordCanvas({
             );
           })}
         </AnimatePresence>
-      </div>
 
-      {/* Central Dial Zone (The old-fashioned dialer ring matching mockup) */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-        <div className="relative w-[280px] h-[280px] xs:w-[320px] xs:h-[320px] sm:w-[420px] sm:h-[420px] flex items-center justify-center pointer-events-none">
-          
-          {/* Concentric Decorative Rings from the mock */}
-          <div className={`absolute inset-0 border-4 border-dashed rounded-full animate-pulse ${
-            isMonochrome ? "border-zinc-400/60 dark:border-zinc-700/60" : "border-indigo-200/60 dark:border-indigo-800/40"
-          }`} />
-          <div className={`absolute inset-10 border-2 rounded-full ${
-            isMonochrome ? "border-zinc-300/40 dark:border-zinc-800/40" : "border-indigo-150/40 dark:border-indigo-900/30"
-          }`} />
+        {/* Connection Lines (Multi-Dialer mode) */}
+        {isMultiDialerMode && isMusicMode && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ minWidth: `${50 + canvasDialersCount * 150}%` }}>
+            {Array.from({ length: canvasDialersCount }).map((_, idx) => {
+              if (idx === canvasDialersCount - 1) return null;
+              const x1 = `${50 + idx * 150}%`;
+              const y1 = `${50 + (idx % 2 === 0 ? 15 : -15)}%`;
+              const x2 = `${50 + (idx + 1) * 150}%`;
+              const y2 = `${50 + ((idx + 1) % 2 === 0 ? 15 : -15)}%`;
+              return (
+                <line
+                  key={idx}
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={isMonochrome ? "#888888" : "#6366f1"}
+                  strokeWidth="4"
+                  strokeDasharray="8,8"
+                  className="opacity-45"
+                />
+              );
+            })}
+          </svg>
+        )}
 
-          <div
-            id="central-dial-zone"
-            className={`
-              relative flex flex-col items-center justify-center h-48 w-48 xs:h-56 xs:w-56 sm:h-72 sm:w-72 rounded-full border-4 pointer-events-auto transition-all duration-300 shadow-2xl
-              ${
-                isMonochrome
-                  ? glowState === 'idle'
-                    ? 'bg-white dark:bg-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-zinc-900/20'
-                    : glowState === 'dragOver'
-                    ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-8 ring-zinc-400/30 scale-[1.03]'
-                    : glowState === 'success'
-                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 ring-12 ring-zinc-400/40 scale-[1.05]'
-                    : 'bg-zinc-200 dark:bg-zinc-800 border-red-600 ring-12 ring-red-500/20 animate-shake scale-[1.02]'
-                  : glowState === 'idle'
-                    ? 'bg-white dark:bg-slate-900 border-indigo-500 shadow-indigo-600/15'
-                    : glowState === 'dragOver'
-                    ? 'bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-600 shadow-[0_25px_60px_rgba(79,70,229,0.25)] ring-8 ring-indigo-400/20 scale-[1.03]'
-                    : glowState === 'success'
-                    ? 'bg-emerald-50/90 dark:bg-emerald-950/20 border-emerald-500 shadow-emerald-400/30 ring-12 ring-emerald-500/20 scale-[1.05]'
-                    : 'bg-red-50/90 dark:bg-red-950/20 border-red-500 shadow-red-400/30 ring-12 ring-red-500/20 animate-shake scale-[1.02]'
-              }
-            `}
-          >
-            {/* Inner Decorative Telephone Circle */}
-            <div className="absolute inset-2 rounded-full border border-dashed border-indigo-100 dark:border-indigo-950 pointer-events-none" />
+        {/* Dialer Nodes */}
+        {(() => {
+          const totalSentences = sentences.length || 1;
+          const activeNodeIdx = isMultiDialerMode && isMusicMode
+            ? Math.min(canvasDialersCount - 1, Math.floor((activeMusicSentenceIndex / totalSentences) * canvasDialersCount))
+            : 0;
 
-            {/* Central content container */}
-            <div className="z-10 flex flex-col items-center justify-center text-center p-6 w-full h-full">
-              {isMusicMode && musicTimer !== undefined && (
-                <div className={`absolute top-4 xs:top-6 sm:top-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full border text-[10px] sm:text-xs font-mono font-black uppercase shadow-sm select-none transition-all duration-300 ${
-                  isMusicPlaying
-                    ? 'bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20 animate-pulse'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isMusicPlaying ? 'bg-red-500 animate-ping' : 'bg-slate-400 dark:bg-slate-600'}`} />
-                  <span>{musicTimer}s</span>
-                </div>
-              )}
+          const dialers = isMultiDialerMode && isMusicMode ? Array.from({ length: canvasDialersCount }) : [null];
+          return dialers.map((_, idx) => {
+            const isCurrent = !isMultiDialerMode || idx === activeNodeIdx;
+            const isCompleted = isMultiDialerMode && idx < activeNodeIdx;
+            const isLocked = isMultiDialerMode && idx > activeNodeIdx;
 
-              {activeSequence.length === 0 ? (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center text-indigo-500 animate-pulse shadow-sm">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mt-1">
-                    SOLTE AQUI
-                  </p>
-                  <p className="hidden xs:block text-[10px] text-slate-400 dark:text-slate-500 px-4 leading-normal font-medium">
-                    Arraste os ideogramas para o centro para discar a frase
-                  </p>
-                  {onTriggerVoiceGuidance && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        playTick();
-                        onTriggerVoiceGuidance();
-                      }}
-                      className="mt-1 flex items-center gap-1 px-3 py-1 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer z-20"
-                      title="Ouvir Guia de Voz da Assistente"
-                    >
-                      <Volume2 size={12} />
-                      <span>Ouvir Guia de Voz</span>
-                    </button>
+            // Calculate range of sentences represented by this dialer node
+            const startIdx = Math.floor((idx / canvasDialersCount) * totalSentences);
+            const endIdx = Math.floor(((idx + 1) / canvasDialersCount) * totalSentences) - 1;
+
+            // Calculate center of this dialer node in percent
+            const posX = 50 + (isMultiDialerMode ? idx * 150 : 0);
+            const posY = 50 + (isMultiDialerMode ? (idx % 2 === 0 ? 15 : -15) : 0);
+
+            return (
+              <div
+                key={idx}
+                style={{
+                  left: `${posX}%`,
+                  top: `${posY}%`,
+                }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none select-none"
+              >
+                {/* Visual wrapper matching original dial sizes */}
+                <div className="relative w-[280px] h-[280px] xs:w-[320px] xs:h-[320px] sm:w-[420px] sm:h-[420px] flex items-center justify-center pointer-events-none">
+                  
+                  {isCurrent && (
+                    <>
+                      {/* Active dialer rings */}
+                      <div className={`absolute inset-0 border-4 border-dashed rounded-full animate-pulse ${
+                        isMonochrome ? "border-zinc-400/60 dark:border-zinc-700/60" : "border-indigo-200/60 dark:border-indigo-800/40"
+                      }`} />
+                      <div className={`absolute inset-10 border-2 rounded-full ${
+                        isMonochrome ? "border-zinc-300/40 dark:border-zinc-800/40" : "border-indigo-150/40 dark:border-indigo-900/30"
+                      }`} />
+                      
+                      <div
+                        id="central-dial-zone"
+                        className={`
+                          relative flex flex-col items-center justify-center h-48 w-48 xs:h-56 xs:w-56 sm:h-72 sm:w-72 rounded-full border-4 pointer-events-auto transition-all duration-300 shadow-2xl
+                          ${
+                            isMonochrome
+                              ? glowState === 'idle'
+                                ? 'bg-white dark:bg-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-zinc-900/20'
+                                : glowState === 'dragOver'
+                                ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-900 dark:border-zinc-100 ring-8 ring-zinc-400/30 scale-[1.03]'
+                                : glowState === 'success'
+                                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 ring-12 ring-zinc-400/40 scale-[1.05]'
+                                : 'bg-zinc-200 dark:bg-zinc-800 border-red-600 ring-12 ring-red-500/20 animate-shake scale-[1.02]'
+                              : glowState === 'idle'
+                                ? 'bg-white dark:bg-slate-900 border-indigo-500 shadow-indigo-600/15'
+                                : glowState === 'dragOver'
+                                ? 'bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-600 shadow-[0_25px_60px_rgba(79,70,229,0.25)] ring-8 ring-indigo-400/20 scale-[1.03]'
+                                : glowState === 'success'
+                                ? 'bg-emerald-50/90 dark:bg-emerald-950/20 border-emerald-500 shadow-emerald-400/30 ring-12 ring-emerald-500/20 scale-[1.05]'
+                                : 'bg-red-50/90 dark:bg-red-950/20 border-red-500 shadow-red-400/30 ring-12 ring-red-500/20 animate-shake scale-[1.02]'
+                          }
+                        `}
+                      >
+                        {/* Inner Decorative Telephone Circle */}
+                        <div className="absolute inset-2 rounded-full border border-dashed border-indigo-100 dark:border-indigo-950 pointer-events-none" />
+
+                        {/* Central content container */}
+                        <div className="z-10 flex flex-col items-center justify-center text-center p-4 w-full h-full">
+                          {isMusicMode && musicTimer !== undefined && (
+                            <div className={`absolute top-4 xs:top-6 sm:top-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full border text-[10px] sm:text-xs font-mono font-black uppercase shadow-sm select-none transition-all duration-300 ${
+                              isMusicPlaying
+                                ? 'bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/20 animate-pulse'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isMusicPlaying ? 'bg-red-500 animate-ping' : 'bg-slate-400 dark:bg-slate-600'}`} />
+                              <span>{musicTimer}s</span>
+                            </div>
+                          )}
+
+                          {activeSequence.length === 0 ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center text-indigo-500 animate-pulse shadow-sm">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                                </svg>
+                              </div>
+                              <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mt-1">
+                                SOLTE AQUI
+                              </p>
+                              <p className="hidden xs:block text-[10px] text-slate-400 dark:text-slate-500 px-4 leading-normal font-medium">
+                                Arraste os ideogramas para o centro para discar a frase
+                              </p>
+                              {onTriggerVoiceGuidance && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    playTick();
+                                    onTriggerVoiceGuidance();
+                                  }}
+                                  className="mt-1 flex items-center gap-1 px-3 py-1 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer z-20"
+                                  title="Ouvir Guia de Voz da Assistente"
+                                >
+                                  <Volume2 size={12} />
+                                  <span>Ouvir Guia de Voz</span>
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-3 w-full">
+                              {/* Dialed Letters Slots */}
+                              <div className="flex flex-wrap justify-center gap-1.5 max-w-full py-1">
+                                <AnimatePresence mode="popLayout">
+                                  {activeSequence.map((char, index) => (
+                                    <motion.div
+                                      key={`${char}-${index}`}
+                                      initial={{ scale: 0, y: 15, opacity: 0 }}
+                                      animate={{ scale: 1, y: 0, opacity: 1 }}
+                                      exit={{ scale: 0, y: -15, opacity: 0 }}
+                                      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                      className={`
+                                        flex items-center justify-center h-10 px-3 rounded-xl text-base font-bold shadow-sm border select-none
+                                        ${
+                                          glowState === 'success'
+                                            ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
+                                            : glowState === 'error'
+                                            ? 'bg-red-500 text-white border-red-400 shadow-red-500/20'
+                                            : 'bg-gradient-to-b from-indigo-500/10 to-indigo-600/15 text-indigo-650 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+                                        }
+                                      `}
+                                    >
+                                      {char}
+                                    </motion.div>
+                                  ))}
+                                </AnimatePresence>
+                              </div>
+
+                              {/* Status Indicator */}
+                              <div className="flex items-center gap-1 mt-1 text-[11px] font-semibold">
+                                {glowState === 'success' ? (
+                                  <span className="flex items-center gap-1 text-emerald-650 dark:text-emerald-400 font-bold animate-pulse">
+                                    <Sparkles size={12} /> Frase Correta!
+                                  </span>
+                                ) : glowState === 'error' ? (
+                                  <span className="flex items-center gap-1 text-red-650 dark:text-red-400 font-bold">
+                                    <AlertCircle size={12} /> Frase Incorreta!
+                                  </span>
+                                ) : (
+                                  <span className="text-indigo-505 dark:text-indigo-400 animate-pulse">
+                                    Discando frase...
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Central Target Circle Core Graphic */}
+                        <div className="absolute bottom-4 text-[9px] font-mono font-bold tracking-widest text-indigo-300 dark:text-indigo-700 select-none pointer-events-none">
+                          LINGUODIAL v2.4
+                        </div>
+                      </div>
+                    </>
                   )}
+
+                  {isCompleted && (
+                    <div className="relative flex flex-col items-center justify-center h-44 w-44 rounded-full border-4 border-emerald-500 bg-emerald-50/90 dark:bg-emerald-950/20 shadow-lg p-4 text-center">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white mb-2 shadow-md">
+                        <Check size={20} strokeWidth={3} />
+                      </div>
+                      <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                        Frases {startIdx + 1} - {endIdx + 1}
+                      </span>
+                      <span className="text-[8px] text-emerald-500 dark:text-emerald-400 mt-1 uppercase tracking-wider">
+                        Completo
+                      </span>
+                    </div>
+                  )}
+
+                  {isLocked && (
+                    <div className="relative flex flex-col items-center justify-center h-44 w-44 rounded-full border-4 border-slate-300 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/60 shadow-inner p-4 text-center opacity-65">
+                      <div className="w-10 h-10 rounded-full bg-slate-300 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 mb-2">
+                        <Lock size={18} />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                        Frases {startIdx + 1} - {endIdx + 1}
+                      </span>
+                      <span className="text-[8px] text-slate-400 dark:text-slate-600 mt-0.5 uppercase tracking-wider">
+                        Bloqueado
+                      </span>
+                    </div>
+                  )}
+
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3 w-full">
-                  {/* Dialed Letters Slots */}
-                  <div className="flex flex-wrap justify-center gap-1.5 max-w-full py-1">
-                    <AnimatePresence mode="popLayout">
-                      {activeSequence.map((char, index) => (
-                        <motion.div
-                          key={`${char}-${index}`}
-                          initial={{ scale: 0, y: 15, opacity: 0 }}
-                          animate={{ scale: 1, y: 0, opacity: 1 }}
-                          exit={{ scale: 0, y: -15, opacity: 0 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                          className={`
-                            flex items-center justify-center h-10 px-3 rounded-xl text-base font-bold shadow-sm border select-none
-                            ${
-                              glowState === 'success'
-                                ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
-                                : glowState === 'error'
-                                ? 'bg-red-500 text-white border-red-400 shadow-red-500/20'
-                                : 'bg-gradient-to-b from-indigo-500/10 to-indigo-600/15 text-indigo-650 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
-                            }
-                          `}
-                        >
-                          {char}
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Status Indicator */}
-                  <div className="flex items-center gap-1 mt-1 text-[11px] font-semibold">
-                    {glowState === 'success' ? (
-                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold animate-pulse">
-                        <Sparkles size={12} /> Frase Correta!
-                      </span>
-                    ) : glowState === 'error' ? (
-                      <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-bold">
-                        <AlertCircle size={12} /> Frase Incorreta!
-                      </span>
-                    ) : (
-                      <span className="text-indigo-505 dark:text-indigo-400 animate-pulse">
-                        Discando frase...
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Central Target Circle Core Graphic */}
-            <div className="absolute bottom-4 text-[9px] font-mono font-bold tracking-widest text-indigo-300 dark:text-indigo-700 select-none pointer-events-none">
-              LINGUODIAL v2.4
-            </div>
-          </div>
-
-        </div>
+              </div>
+            );
+          });
+        })()}
       </div>
-
       {/* Floating Tutorial Message at Bottom - Hidden */}
       <div className="hidden absolute bottom-5 left-1/2 -translate-x-1/2 z-10 bg-white dark:bg-slate-900 border-2 border-indigo-100 dark:border-indigo-950 px-4 py-1.5 rounded-full text-[11px] text-slate-500 dark:text-slate-400 shadow-md text-center max-w-[90%] select-none pointer-events-none font-medium">
         💡 Arraste e solte ideogramas no <strong className="text-indigo-600 dark:text-indigo-400 font-bold">disco central</strong> para discar
