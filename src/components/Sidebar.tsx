@@ -23,7 +23,8 @@ import {
   MicOff,
   Sparkles,
   Send,
-  Trophy
+  Trophy,
+  Music
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -49,6 +50,9 @@ interface SidebarProps {
   dialErrorsCount: number;
   songs: any[];
   forceTab?: TabType;
+  isMusicMode?: boolean;
+  activeSongId?: string;
+  onSelectSong?: (songId: string) => void;
 }
 
 type TabType = 'home' | 'categories' | 'review' | 'progress' | 'profile' | 'chat' | 'ranking';
@@ -76,6 +80,9 @@ export default function Sidebar({
   dialErrorsCount,
   songs,
   forceTab,
+  isMusicMode = false,
+  activeSongId,
+  onSelectSong,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -656,7 +663,7 @@ export default function Sidebar({
             </motion.div>
           )}
 
-          {/* TAB 2: CATEGORIES (Filter selector) */}
+          {/* TAB 2: CATEGORIES / SONGS PLAYLIST */}
           {activeTab === 'categories' && (
             <motion.div
               key="categories-tab"
@@ -665,64 +672,127 @@ export default function Sidebar({
               exit={{ opacity: 0, x: -10 }}
               className="space-y-4"
             >
-              <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filtrar por Categoria</h3>
-                <div className="grid grid-cols-1 gap-2">
-                  {['Todos', 'Saudações', 'Alimentos & Bebidas', 'Estudo', 'Cotidiano'].map((cat) => {
-                    const countInCat = sentences.filter(s => cat === 'Todos' || s.category === cat).length;
-                    const completedInCat = sentences.filter(s => (cat === 'Todos' || s.category === cat) && completedSentenceIds.includes(s.id)).length;
-                    const isSelected = activeCategory === cat;
-                    
-                    return (
-                      <button
-                        key={cat}
-                        onClick={() => onSelectCategory(cat)}
-                        className={`
-                          p-3 rounded-xl border flex items-center justify-between text-left transition-all active:scale-98
-                          ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/15'
-                              : 'bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-900 dark:hover:bg-slate-850 dark:text-slate-300 border-slate-200 dark:border-slate-800'
-                          }
-                        `}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">{cat === 'Todos' ? '🌐' : cat === 'Saudações' ? '👋' : cat === 'Alimentos & Bebidas' ? '☕' : cat === 'Estudo' ? '📚' : '🏠'}</span>
-                          <span className="text-xs font-semibold">{cat}</span>
-                        </div>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${isSelected ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-950 dark:text-slate-400'}`}>
-                          {completedInCat} / {countInCat}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {isMusicMode ? (
+                <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+                  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
+                    <Music size={16} className="text-pink-500" />
+                    Playlist de Músicas
+                  </h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {songs.filter(s => !s.isHidden).map((song) => {
+                      const saved = localStorage.getItem(`hanzi_dial_completed_music_indices_${song.id}`);
+                      const completedIndices: number[] = saved ? JSON.parse(saved) : [];
+                      const isCompleted = song.sentences.length > 0 && completedIndices.length === song.sentences.length;
+                      const isCurrent = song.id === activeSongId;
 
-              <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Dificuldade</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['Todos', 'Fácil', 'Médio', 'Difícil'] as const).map((diff) => {
-                    const isSelected = activeDifficulty === diff;
-                    return (
-                      <button
-                        key={diff}
-                        onClick={() => onSelectDifficulty(diff)}
-                        className={`
-                          py-2 px-3 rounded-xl border text-xs font-semibold text-center transition-all active:scale-95
-                          ${
-                            isSelected
-                              ? 'bg-slate-800 text-white border-slate-700 dark:bg-white dark:text-slate-900'
-                              : 'bg-white hover:bg-slate-50 text-slate-600 dark:bg-slate-900 dark:hover:bg-slate-850 dark:text-slate-400 border-slate-200 dark:border-slate-800'
-                          }
-                        `}
-                      >
-                        {diff}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={song.id}
+                          onClick={() => {
+                            if (onSelectSong) {
+                              playTick();
+                              onSelectSong(song.id);
+                            }
+                          }}
+                          className={`
+                            p-3 rounded-xl border flex items-center justify-between text-left transition-all active:scale-98
+                            ${
+                              isCurrent
+                                ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-indigo-500 text-white border-transparent shadow-md font-bold'
+                                : 'bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-900 dark:hover:bg-slate-850 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                            }
+                          `}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0
+                              bg-gradient-to-br ${song.coverGradient || 'from-indigo-400 to-pink-400'}
+                              ${isCurrent ? 'ring-2 ring-white/40' : ''}`}>
+                              {song.coverEmoji}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className={`block text-xs font-black truncate max-w-[130px] ${isCurrent ? 'text-white font-extrabold' : 'text-slate-800 dark:text-slate-100 font-extrabold'}`}>{song.title}</span>
+                              <span className={`block text-[9px] font-mono truncate max-w-[130px] ${isCurrent ? 'text-white/80' : 'text-slate-400'}`}>{song.artist}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {isCompleted ? (
+                              <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${isCurrent ? 'bg-white text-emerald-600 font-bold' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'}`}>
+                                ✓ Finalizado
+                              </span>
+                            ) : (
+                              <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded-full ${isCurrent ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-950 dark:text-slate-400'}`}>
+                                {completedIndices.length}/{song.sentences.length}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filtrar por Categoria</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      {['Todos', 'Saudações', 'Alimentos & Bebidas', 'Estudo', 'Cotidiano'].map((cat) => {
+                        const countInCat = sentences.filter(s => cat === 'Todos' || s.category === cat).length;
+                        const completedInCat = sentences.filter(s => (cat === 'Todos' || s.category === cat) && completedSentenceIds.includes(s.id)).length;
+                        const isSelected = activeCategory === cat;
+                        
+                        return (
+                          <button
+                            key={cat}
+                            onClick={() => onSelectCategory(cat)}
+                            className={`
+                              p-3 rounded-xl border flex items-center justify-between text-left transition-all active:scale-98
+                              ${
+                                isSelected
+                                  ? 'bg-indigo-650 text-white border-indigo-500 shadow-md shadow-indigo-650/15'
+                                  : 'bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-900 dark:hover:bg-slate-850 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                              }
+                            `}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">{cat === 'Todos' ? '🌐' : cat === 'Saudações' ? '👋' : cat === 'Alimentos & Bebidas' ? '☕' : cat === 'Estudo' ? '📚' : '🏠'}</span>
+                              <span className="text-xs font-semibold">{cat}</span>
+                            </div>
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${isSelected ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-950 dark:text-slate-400'}`}>
+                              {completedInCat} / {countInCat}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Dificuldade</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['Todos', 'Fácil', 'Médio', 'Difícil'] as const).map((diff) => {
+                        const isSelected = activeDifficulty === diff;
+                        return (
+                          <button
+                            key={diff}
+                            onClick={() => onSelectDifficulty(diff)}
+                            className={`
+                              py-2 px-3 rounded-xl border text-xs font-semibold text-center transition-all active:scale-95
+                              ${
+                                isSelected
+                                  ? 'bg-slate-800 text-white border-slate-700 dark:bg-white dark:text-slate-900'
+                                  : 'bg-white hover:bg-slate-50 text-slate-600 dark:bg-slate-900 dark:hover:bg-slate-850 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+                              }
+                            `}
+                          >
+                            {diff}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
 
@@ -1308,16 +1378,14 @@ export default function Sidebar({
         >
           <Home size={18} />
           <span>Home</span>
-        </button>
-        
+        </button>        
         <button
           onClick={() => setActiveTab('categories')}
           className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-all ${activeTab === 'categories' ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-500'}`}
         >
-          <Grid size={18} />
-          <span>Categorias</span>
+          {isMusicMode ? <Music size={18} /> : <Grid size={18} />}
+          <span>{isMusicMode ? "Músicas" : "Categorias"}</span>
         </button>
-
         <button
           onClick={() => setActiveTab('review')}
           className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-all relative ${activeTab === 'review' ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-500'}`}

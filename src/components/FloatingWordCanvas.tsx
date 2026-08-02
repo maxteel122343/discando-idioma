@@ -1385,10 +1385,15 @@ export default function FloatingWordCanvas({
                             </div>
                           )}
                         </div>
-
-                        {/* Central Target Circle Core Graphic */}
-                        <div className="absolute bottom-4 text-[9px] font-mono font-bold tracking-widest text-indigo-300 dark:text-indigo-700 select-none pointer-events-none">
-                          LINGUODIAL v2.4
+                        <div className="absolute bottom-4 flex flex-col items-center select-none pointer-events-none gap-0.5">
+                          <span className="text-[9px] font-mono font-black tracking-widest text-indigo-300 dark:text-indigo-700">
+                            LINGUODIAL v2.4
+                          </span>
+                          {isMultiDialerMode && isMusicMode && (
+                            <span className="text-[8px] font-mono font-bold uppercase text-indigo-400/85 dark:text-indigo-500/85 bg-indigo-50/50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded-full border border-indigo-100/40 dark:border-indigo-900/30">
+                              Grupo: {startIdx + 1}-{endIdx + 1} ({endIdx - startIdx + 1} frases)
+                            </span>
+                          )}
                         </div>
                       </div>
                     </>
@@ -1402,7 +1407,10 @@ export default function FloatingWordCanvas({
                       <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
                         Frases {startIdx + 1} - {endIdx + 1}
                       </span>
-                      <span className="text-[8px] text-emerald-500 dark:text-emerald-400 mt-1 uppercase tracking-wider">
+                      <span className="text-[9px] font-mono font-bold text-emerald-550/80 dark:text-emerald-400/85 mt-0.5">
+                        ({endIdx - startIdx + 1} frases)
+                      </span>
+                      <span className="text-[8px] text-emerald-500 dark:text-emerald-400 mt-1 uppercase tracking-wider font-bold">
                         Completo
                       </span>
                     </div>
@@ -1416,12 +1424,14 @@ export default function FloatingWordCanvas({
                       <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                         Frases {startIdx + 1} - {endIdx + 1}
                       </span>
-                      <span className="text-[8px] text-slate-400 dark:text-slate-600 mt-0.5 uppercase tracking-wider">
+                      <span className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-600 mt-0.5">
+                        ({endIdx - startIdx + 1} frases)
+                      </span>
+                      <span className="text-[8px] text-slate-400 dark:text-slate-600 mt-1 uppercase tracking-wider font-bold">
                         Bloqueado
                       </span>
                     </div>
                   )}
-
                 </div>
               </div>
             );

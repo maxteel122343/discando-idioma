@@ -50,9 +50,9 @@ import {
   CheckCircle,
   AlertTriangle,
   Expand,
-  Shrink
+  Shrink,
+  Grid
 } from 'lucide-react';
-
 const PRELOADED_BOOKS: Record<string, { name: string; sentences: Sentence[] }> = {
   prince: {
     name: "O Pequeno Príncipe (小王子)",
@@ -1570,8 +1570,33 @@ export default function App() {
             }`}>
               <Music size={20} />
             </div>
-            <span className="text-[10px] font-bold">Música</span>
+             <span className="text-[10px] font-bold">Música</span>
           </button>
+
+          {/* Playlist Tab (visible only when in music mode) */}
+          {isMusicMode && (
+            <button
+              onClick={() => {
+                playTick();
+                setSidebarForceTab('categories');
+                setIsSidebarOpenMobile(true);
+              }}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                isSidebarOpenMobile && sidebarForceTab === 'categories'
+                  ? 'text-pink-600 dark:text-pink-400'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+              }`}
+            >
+              <div className={`p-1.5 rounded-xl transition-all ${
+                isSidebarOpenMobile && sidebarForceTab === 'categories'
+                  ? 'bg-pink-100 dark:bg-pink-950/60'
+                  : ''
+              }`}>
+                <Grid size={20} />
+              </div>
+              <span className="text-[10px] font-bold">Playlist</span>
+            </button>
+          )}
 
           {/* Ebook Tab */}
           <button
@@ -1681,10 +1706,22 @@ export default function App() {
               dialErrorsCount={dialErrorsCount}
               songs={musicSongs}
               forceTab={sidebarForceTab}
+              isMusicMode={isMusicMode}
+              activeSongId={activeSongId}
+              onSelectSong={(songId) => {
+                playTick();
+                setActiveSongId(songId);
+                setActiveMusicSentenceIndex(0);
+                handleClearSequence();
+                const selectedSong = musicSongs.find(s => s.id === songId);
+                if (selectedSong) {
+                  const targetLangId = getLanguageIdFromSong(selectedSong.language);
+                  handleSelectLanguage(targetLangId);
+                }
+              }}
             />
           </div>
         </div>
-
         {/* Right Side (Left Side renamed): Game Canvas & Quick Level selector */}
         <div className="flex-1 flex flex-col gap-4">
           
