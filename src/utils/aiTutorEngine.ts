@@ -401,9 +401,9 @@ export function buildWordGuidanceSequence(
       'Ótimo acerto!'
     ];
     const randomPraise = praiseList[Math.floor(Math.random() * praiseList.length)];
-    items.push({ text: `${randomPraise} Próxima palavra: escolha`, langCode: nativeLangCode });
+    items.push({ text: `${randomPraise} Próxima palavra:`, langCode: nativeLangCode });
   } else {
-    items.push({ text: 'Selecione a palavra:', langCode: nativeLangCode });
+    items.push({ text: 'Próxima palavra:', langCode: nativeLangCode });
   }
 
   // 2. Target word in target language
