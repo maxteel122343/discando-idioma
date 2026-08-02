@@ -198,8 +198,8 @@ export default function FloatingWordCanvas({
 
       if (dist < minCenterDist || dist > maxCenterDist || cardMovementType === 'orbit') {
         const angle = Math.atan2(dy, dx) || (idx * 0.5);
-        // Distribute nicely in tracks outside the central dial ring (36% to 46% radius)
-        const desiredRadius = minCenterDist + 2 + ((idx % 3) * 3);
+        // Distribute nicely in tracks outside the central dial ring (up to 95% radius)
+        const desiredRadius = minCenterDist + 2 + ((idx % 5) * 12);
         x = 50 + Math.cos(angle) * desiredRadius;
         y = 50 + Math.sin(angle) * desiredRadius;
       }
@@ -211,8 +211,8 @@ export default function FloatingWordCanvas({
       return {
         id: `word-${idx}-${text}`,
         text,
-        x: Math.max(5, Math.min(95, x)),
-        y: Math.max(5, Math.min(95, y)),
+        x: x,
+        y: y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         size: text.length > 1 ? 1.05 : 1, // slightly larger for multi-character words
@@ -264,10 +264,8 @@ export default function FloatingWordCanvas({
             const dy = word.y - 50;
             let radius = Math.sqrt(dx * dx + dy * dy);
             
-            // Lock radius so cards NEVER enter the dialing zone or drift out of boundaries on narrow mobile screens
-            const maxRadius = isMobile ? 42 : 47;
+            // Ensure cards do not enter the central dialing zone, but let them orbit at any outer radius!
             if (radius < 36) radius = 36;
-            if (radius > maxRadius) radius = maxRadius;
 
             const angle = Math.atan2(dy, dx);
             // Alternate clockwise and counter-clockwise direction based on index
@@ -282,11 +280,11 @@ export default function FloatingWordCanvas({
             nextX = word.x + word.vx * cardSpeed;
             nextY = word.y + word.vy * cardSpeed;
 
-            // Bounce off container boundaries with safer margins on mobile
-            const minX = isMobile ? 12 : 6;
-            const maxX = isMobile ? 88 : 94;
-            const minY = isMobile ? 10 : 6;
-            const maxY = isMobile ? 90 : 94;
+            // Bounce off wider container boundaries to accommodate panning workspace
+            const minX = -60;
+            const maxX = 160;
+            const minY = -60;
+            const maxY = 160;
 
             if (nextX < minX || nextX > maxX) {
               nextVx = -word.vx;

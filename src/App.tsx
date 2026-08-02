@@ -1983,57 +1983,7 @@ export default function App() {
         </div>
 
         {/* Right Side: Persistent Library Sidebar (Desktop) or Sliding Drawer (Mobile) / Ebook / Music Panel */}
-        {isMusicMode && (
-          <div className={`hidden lg:block w-[400px] flex-shrink-0 z-30 ${isMusicPlayerMinimized ? 'hidden' : 'block'}`}>
-            <MusicPlayerPanel
-              songs={musicSongs}
-              activeSongId={activeSongId}
-              activeSentenceIndex={activeMusicSentenceIndex}
-              completedSentenceIndices={completedMusicSentenceIndices}
-              isPlaying={isMusicPlaying}
-              onTogglePlay={() => setIsMusicPlaying(!isMusicPlaying)}
-              songTrophies={songTrophies}
-              onSelectSong={(songId) => {
-                playTick();
-                setActiveSongId(songId);
-                setActiveMusicSentenceIndex(0);
-                handleClearSequence();
-                const selectedSong = musicSongs.find(s => s.id === songId);
-                if (selectedSong) {
-                  const targetLangId = getLanguageIdFromSong(selectedSong.language);
-                  handleSelectLanguage(targetLangId);
-                }
-              }}
-              onSelectSentence={(idx) => {
-                playTick();
-                setActiveMusicSentenceIndex(idx);
-                handleClearSequence();
-              }}
-              onAddCustomSong={(newSong) => {
-                playTick();
-                const updated = [...musicSongs, newSong];
-                setMusicSongs(updated);
-                const customOnly = updated.filter(s => s.id.startsWith('song-custom-'));
-                localStorage.setItem('hanzi_dial_custom_songs', JSON.stringify(customOnly));
-                setActiveSongId(newSong.id);
-                setActiveMusicSentenceIndex(0);
-                handleClearSequence();
-              }}
-              onExitMusic={() => {
-                playTick();
-                setIsMusicMode(false);
-                handleClearSequence();
-              }}
-              onMinimizeMusic={() => {
-                playTick();
-                setIsMusicPlayerMinimized(true);
-              }}
-              onSpeakSentence={(text) => {
-                handleSpeakText(text);
-              }}
-            />
-          </div>
-        )}
+
         {!isMusicMode && isEbookMode && (
           <EbookReaderPanel
             ebookName={ebookName}
